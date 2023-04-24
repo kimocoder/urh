@@ -105,8 +105,9 @@ class Spectrogram(object):
         strides = (hop_size * samples.strides[-1], samples.strides[-1])
         frames = np.lib.stride_tricks.as_strided(samples, shape=shape, strides=strides)
 
-        result = np.fft.fft(frames * window, self.window_size) / np.atleast_1d(self.window_size)
-        return result
+        return np.fft.fft(frames * window, self.window_size) / np.atleast_1d(
+            self.window_size
+        )
 
     def export_to_fta(self, sample_rate, filename: str, include_amplitude=False):
         """
@@ -156,8 +157,7 @@ class Spectrogram(object):
         step = max(1, int((step / self.hop_size) * self.hop_size ** 2))
 
         for i in range(0, len(self.samples), step):
-            image = self.create_spectrogram_image(sample_start=i, sample_end=i+step)
-            yield image
+            yield self.create_spectrogram_image(sample_start=i, sample_end=i+step)
 
     @staticmethod
     def apply_bgra_lookup(data: np.ndarray, colormap, data_min=None, data_max=None, normalize=True) -> np.ndarray:
@@ -189,7 +189,7 @@ class Spectrogram(object):
             # QImage constructor needs inverted row/column order
             image = QImage(image_data.ctypes.data, image_data.shape[1], image_data.shape[0], QImage.Format_ARGB32)
         except Exception as e:
-            logger.error("could not create image " + str(e))
+            logger.error(f"could not create image {str(e)}")
             return QImage()
 
         image.data = image_data

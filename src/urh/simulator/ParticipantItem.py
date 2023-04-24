@@ -36,7 +36,7 @@ class ParticipantItem(QGraphicsItem):
         return self.boundingRect().width()
 
     def refresh(self):
-        self.text.setPlainText("?" if not self.model_item else self.model_item.shortname)
+        self.text.setPlainText(self.model_item.shortname if self.model_item else "?")
         if hasattr(self.model_item, "simulate") and self.model_item.simulate:
             font = QFont()
             font.setBold(True)

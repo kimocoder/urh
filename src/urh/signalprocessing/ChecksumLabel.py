@@ -37,10 +37,7 @@ class ChecksumLabel(ProtocolLabel):
 
     @property
     def data_ranges(self):
-        if self.category == self.Category.wsp:
-            return [[12, -4]]
-        else:
-            return self.__data_ranges
+        return [[12, -4]] if self.category == self.Category.wsp else self.__data_ranges
 
     @data_ranges.setter
     def data_ranges(self, value):

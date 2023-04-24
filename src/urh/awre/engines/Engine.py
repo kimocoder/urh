@@ -10,7 +10,7 @@ class Engine(object):
 
     def _debug(self, *args):
         if self._DEBUG_:
-            print("[{}]".format(self.__class__.__name__), *args)
+            print(f"[{self.__class__.__name__}]", *args)
 
     @staticmethod
     def find_common_ranges_by_cluster(msg_vectors, clustered_bitvectors, alpha=0.95, range_type="bit"):
@@ -28,12 +28,12 @@ class Engine(object):
             for cluster, message_indices in clustered_bitvectors.items()
         }
 
-        common_ranges_by_cluster = {
-            cluster: histogram.find_common_ranges(alpha=alpha, range_type=range_type)
+        return {
+            cluster: histogram.find_common_ranges(
+                alpha=alpha, range_type=range_type
+            )
             for cluster, histogram in histograms.items()
         }
-
-        return common_ranges_by_cluster
 
     @staticmethod
     def find_common_ranges_exhaustive(msg_vectors, msg_indices, range_type="bit") -> list:

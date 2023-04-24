@@ -147,7 +147,9 @@ class MainController(QMainWindow):
         self.ui.actionSave_project.setVisible(False)
         self.ui.actionClose_project.setVisible(False)
 
-        self.restoreGeometry(settings.read("{}/geometry".format(self.__class__.__name__), type=bytes))
+        self.restoreGeometry(
+            settings.read(f"{self.__class__.__name__}/geometry", type=bytes)
+        )
 
     def __set_non_project_warning_visibility(self):
         show = settings.read("show_non_project_warning", True, bool) and not self.project_manager.project_loaded
@@ -253,8 +255,7 @@ class MainController(QMainWindow):
         self.file_proxy_model.open_files.add(filename)
 
     def add_protocol_file(self, filename):
-        proto = self.compare_frame_controller.add_protocol_from_file(filename)
-        if proto:
+        if proto := self.compare_frame_controller.add_protocol_from_file(filename):
             self.__add_empty_frame_for_filename(proto, filename)
         self.ui.tabWidget.setCurrentWidget(self.ui.tab_protocol)
 
@@ -417,7 +418,7 @@ class MainController(QMainWindow):
 
     def closeEvent(self, event: QCloseEvent):
         self.save_project()
-        settings.write("{}/geometry".format(self.__class__.__name__), self.saveGeometry())
+        settings.write(f"{self.__class__.__name__}/geometry", self.saveGeometry())
         super().closeEvent(event)
 
     def close_all_files(self):
@@ -539,7 +540,7 @@ class MainController(QMainWindow):
                 display_text = tail
                 head, tail = os.path.split(head)
                 if tail:
-                    display_text = tail + "/" + display_text
+                    display_text = f"{tail}/{display_text}"
 
                 self.recentFileActionList[i].setIcon(QIcon.fromTheme("folder"))
             else:
@@ -589,8 +590,11 @@ class MainController(QMainWindow):
                     continue
                 n = protocol.num_messages
                 view_type = cfc.ui.cbProtoView.currentIndex()
-                messages = [i - msg_total for i in range(msg_total, msg_total + n) if start_message <= i <= end_message]
-                if len(messages) > 0:
+                if messages := [
+                    i - msg_total
+                    for i in range(msg_total, msg_total + n)
+                    if start_message <= i <= end_message
+                ]:
                     try:
                         signal_frame = next((sf for sf, pf in self.signal_protocol_dict.items() if pf == protocol))
                     except StopIteration:
@@ -601,9 +605,8 @@ class MainController(QMainWindow):
                     last_sig_frame = signal_frame
                 msg_total += n
             focus_frame = last_sig_frame
-            if last_sig_frame is not None:
-                self.signal_tab_controller.ui.scrollArea.ensureWidgetVisible(last_sig_frame, 0, 0)
-
+            if focus_frame is not None:
+                self.signal_tab_controller.ui.scrollArea.ensureWidgetVisible(focus_frame, 0, 0)
             QApplication.instance().processEvents()
             self.ui.tabWidget.setCurrentIndex(0)
             if focus_frame is not None:
@@ -613,8 +616,8 @@ class MainController(QMainWindow):
 
     @pyqtSlot(str)
     def on_file_tree_filter_text_changed(self, text: str):
-        if len(text) > 0:
-            self.filemodel.setNameFilters(["*" + text + "*"])
+        if text != "":
+            self.filemodel.setNameFilters([f"*{text}*"])
         else:
             self.filemodel.setNameFilters(["*"])
 
@@ -703,8 +706,7 @@ class MainController(QMainWindow):
 
     @pyqtSlot()
     def show_proto_sniff_dialog(self):
-        psd = self.create_protocol_sniff_dialog()
-        if psd:
+        if psd := self.create_protocol_sniff_dialog():
             psd.show()
 
     @pyqtSlot()
@@ -776,9 +778,9 @@ class MainController(QMainWindow):
         if dialog.exec_():
             try:
                 file_names = dialog.selectedFiles()
-                folders = [folder for folder in file_names if os.path.isdir(folder)]
-
-                if len(folders) > 0:
+                if folders := [
+                    folder for folder in file_names if os.path.isdir(folder)
+                ]:
                     folder = folders[0]
                     for f in self.signal_tab_controller.signal_frames:
                         self.close_signal_frame(f)
@@ -813,8 +815,11 @@ class MainController(QMainWindow):
         self.__add_urls_to_group(files, group_id=group_id)
 
     def __add_urls_to_group(self, file_urls, group_id=0):
-        local_files = [file_url.toLocalFile() for file_url in file_urls if file_url.isLocalFile()]
-        if len(local_files) > 0:
+        if local_files := [
+            file_url.toLocalFile()
+            for file_url in file_urls
+            if file_url.isLocalFile()
+        ]:
             self.setCursor(Qt.WaitCursor)
             self.add_files(FileOperator.uncompress_archives(local_files, QDir.tempPath()), group_id=group_id)
             self.unsetCursor()
@@ -884,7 +889,7 @@ class MainController(QMainWindow):
 
     @pyqtSlot(bool)
     def on_auto_detect_new_signals_action_triggered(self, checked: bool):
-        settings.write("auto_detect_new_signals", bool(checked))
+        settings.write("auto_detect_new_signals", checked)
 
     def __import_csv(self, file_name, group_id=0):
         def on_data_imported(complex_file, sample_rate):

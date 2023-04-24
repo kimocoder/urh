@@ -27,16 +27,15 @@ class SimulatorGotoAction(SimulatorItem):
         return self.is_valid_goto_target(self.goto_target, target)
 
     def get_valid_goto_targets(self):
-        valid_targets = []
-
-        for key, value in self.simulator_config.item_dict.items():
-            if value != self and SimulatorGotoAction.is_valid_goto_target(key, value):
-                valid_targets.append(key)
-
-        return valid_targets
+        return [
+            key
+            for key, value in self.simulator_config.item_dict.items()
+            if value != self
+            and SimulatorGotoAction.is_valid_goto_target(key, value)
+        ]
 
     def to_xml(self) -> ET.Element:
-        attributes = dict()
+        attributes = {}
         if self.goto_target is not None:
             attributes["goto_target"] = self.goto_target
 
@@ -52,13 +51,12 @@ class SimulatorGotoAction(SimulatorItem):
     def is_valid_goto_target(caption: str, item: SimulatorItem):
         if item is None:
             return False
-        if isinstance(item, SimulatorProtocolLabel) or isinstance(item, SimulatorRule):
+        if isinstance(item, (SimulatorProtocolLabel, SimulatorRule)):
             return False
         if isinstance(item, SimulatorRuleCondition) and item.type != ConditionType.IF:
             return False
         if isinstance(item, SimulatorCounterAction):
             return False
-        if isinstance(item, SimulatorTriggerCommandAction) and caption.endswith("rc"):
-            return False
-
-        return True
+        return not isinstance(
+            item, SimulatorTriggerCommandAction
+        ) or not caption.endswith("rc")

@@ -202,9 +202,9 @@ class Message(object):
 
             for label in self.exclude_from_decoding_labels:
                 self.__encoded_bits.extend(encode(bits[start:label.start]))
-                start = label.start if label.start > start else start  # Overlapping
+                start = max(label.start, start)
                 self.__encoded_bits.extend(bits[start:label.end])
-                start = label.end if label.end > start else start  # Overlapping
+                start = max(label.end, start)
 
             self.__encoded_bits.extend(encode(bits[start:]))
         return self.__encoded_bits
@@ -235,9 +235,9 @@ class Message(object):
                     label.start = len(self.__decoded_bits)
                     label.end = label.start + (label.end - label.start)
 
-                start = label.start if label.start > start else start  # Überlappende Labels -.-
+                start = max(label.start, start)
                 self.__decoded_bits.extend(bits[start:label.end])
-                start = label.end if label.end > start else start  # Überlappende Labels FFS >.<
+                start = max(label.end, start)
 
             decoded, errors, state = code(True, bits[start:])
             states.add(state)
@@ -245,7 +245,7 @@ class Message(object):
             self.decoding_errors += errors
 
             states.discard(self.decoder.ErrorState.SUCCESS)
-            if len(states) > 0:
+            if states:
                 self.decoding_state = sorted(states)[0]
 
         return self.__decoded_bits
@@ -305,11 +305,15 @@ class Message(object):
     def __get_bit_range_from_hex_or_ascii_index(self, from_index: int, decoded: bool, is_hex: bool) -> tuple:
         bits = self.decoded_bits if decoded else self.plain_bits
         factor = 4 if is_hex else 8
-        for i in range(len(bits)):
-            if self.__get_hex_ascii_index_from_bit_index(i, to_hex=is_hex)[0] == from_index:
-                return i, i + factor - 1
-
-        return factor * from_index, factor * (from_index+1) - 1
+        return next(
+            (
+                (i, i + factor - 1)
+                for i in range(len(bits))
+                if self.__get_hex_ascii_index_from_bit_index(i, to_hex=is_hex)[0]
+                == from_index
+            ),
+            (factor * from_index, factor * (from_index + 1) - 1),
+        )
 
     def __get_hex_ascii_index_from_bit_index(self, bit_index: int, to_hex: bool) -> tuple:
         factor = 4 if to_hex else 8
@@ -317,12 +321,11 @@ class Message(object):
 
         last_alignment = 0
         for ba in self.__bit_alignments:
-            if ba <= bit_index:
-                result += math.ceil((ba - last_alignment) / factor)
-                last_alignment = ba
-            else:
+            if ba > bit_index:
                 break
 
+            result += math.ceil((ba - last_alignment) / factor)
+            last_alignment = ba
         result += math.floor((bit_index - last_alignment) / factor)
 
         return result, result
@@ -371,18 +374,23 @@ class Message(object):
         :param decoded:
         :return:
         """
-        src_address_label = next((lbl for lbl in self.message_type if lbl.field_type
-                                  and lbl.field_type.function == FieldType.Function.SRC_ADDRESS), None)
-        if src_address_label:
+        if src_address_label := next(
+            (
+                lbl
+                for lbl in self.message_type
+                if lbl.field_type
+                and lbl.field_type.function == FieldType.Function.SRC_ADDRESS
+            ),
+            None,
+        ):
             start, end = self.get_label_range(src_address_label, view=1, decode=decoded)
-            if decoded:
-                src_address = self.decoded_hex_str[start:end]
-            else:
-                src_address = self.plain_hex_str[start:end]
+            return (
+                self.decoded_hex_str[start:end]
+                if decoded
+                else self.plain_hex_str[start:end]
+            )
         else:
-            src_address = None
-
-        return src_address
+            return None
 
     @staticmethod
     def __bit_chains_to_hex(bit_chains) -> array.array:
@@ -450,14 +458,11 @@ class Message(object):
         else:
             return None
 
-        if show_pauses:
-            return '%s %s' % (proto, self.get_pause_str(sample_rate))
-        else:
-            return proto
+        return f'{proto} {self.get_pause_str(sample_rate)}' if show_pauses else proto
 
     def get_pause_str(self, sample_rate):
         if sample_rate:
-            return ' [<b>Pause:</b> %s]' % (Formatter.science_time(self.pause / sample_rate))
+            return f' [<b>Pause:</b> {Formatter.science_time(self.pause / sample_rate)}]'
         else:
             return ' [<b>Pause:</b> %d samples]' % (self.pause)
 
@@ -492,7 +497,7 @@ class Message(object):
             try:
                 decoding_index = decoders.index(self.decoder)
             except ValueError:
-                logger.warning("Failed to find '{}' in list of decodings".format(self.decoder.name))
+                logger.warning(f"Failed to find '{self.decoder.name}' in list of decodings")
                 decoding_index = 0
             root.set("decoding_index", str(decoding_index))
         if self.participant is not None:
@@ -502,8 +507,7 @@ class Message(object):
         return root
 
     def from_xml(self, tag: ET.Element, participants, decoders=None, message_types=None):
-        timestamp = tag.get("timestamp", None)
-        if timestamp:
+        if timestamp := tag.get("timestamp", None):
             self.timestamp = float(timestamp)
 
         part_id = tag.get("participant_id", None)
@@ -528,8 +532,7 @@ class Message(object):
                     self.message_type = message_type
                     break
 
-        message_type_tag = tag.find("message_type")
-        if message_type_tag:
+        if message_type_tag := tag.find("message_type"):
             self.message_type = MessageType.from_xml(message_type_tag)
 
     @classmethod

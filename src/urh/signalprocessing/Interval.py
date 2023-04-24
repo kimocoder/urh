@@ -19,10 +19,7 @@ class Interval(object):
         return len(self.data)
 
     def __eq__(self, other):
-        if isinstance(other, Interval):
-            return self.data == other.data
-        else:
-            return False
+        return self.data == other.data if isinstance(other, Interval) else False
 
     def __lt__(self, other):
         if isinstance(other, Interval):
@@ -34,7 +31,7 @@ class Interval(object):
         return range(self.start, self.end)
 
     def __repr__(self):
-        return "{}-{}".format(self.start, self.end)
+        return f"{self.start}-{self.end}"
 
     def overlaps_with(self, other_interval) -> bool:
         return any(r in self.range() for r in other_interval.range())

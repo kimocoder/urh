@@ -99,7 +99,7 @@ class ReceiveDialog(SendRecvDialog):
                                                      big_val(dev.frequency), big_val(dev.sample_rate))
 
         if dev.bandwidth_is_adjustable:
-            initial_name += "-{}Hz".format(big_val(dev.bandwidth))
+            initial_name += f"-{big_val(dev.bandwidth)}Hz"
 
         initial_name = initial_name.replace(Formatter.local_decimal_seperator(), "_").replace("_000", "")
 

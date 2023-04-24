@@ -114,7 +114,7 @@ class InsertSinePlugin(SignalEditorPlugin):
 
     @num_samples.setter
     def num_samples(self, value: int):
-        value = int(value)
+        value = value
         if value != self.num_samples:
             self.__num_samples = value
             self.set_time()

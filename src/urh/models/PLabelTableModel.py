@@ -42,10 +42,7 @@ class PLabelTableModel(QAbstractTableModel):
 
     def __get_label_at(self, index: int) -> ProtocolLabel:
         result = self.message_type[index]
-        if isinstance(result, SimulatorProtocolLabel):
-            return result.label
-        else:
-            return result
+        return result.label if isinstance(result, SimulatorProtocolLabel) else result
 
     def update(self):
         self.beginResetModel()

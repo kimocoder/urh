@@ -90,9 +90,10 @@ class ProtocolSniffer(ProtocolAnalyzer, QObject):
         self.__current_buffer_index = 0
 
     def decoded_to_string(self, view: int, start=0, include_timestamps=True):
-        result = []
-        for msg in self.messages[start:]:
-            result.append(self.message_to_string(msg, view, include_timestamps))
+        result = [
+            self.message_to_string(msg, view, include_timestamps)
+            for msg in self.messages[start:]
+        ]
         return "\n".join(result)
 
     def message_to_string(self, message: Message, view: int, include_timestamps=True):
@@ -159,8 +160,7 @@ class ProtocolSniffer(ProtocolAnalyzer, QObject):
                 self.rcv_device.free_data()  # do not store received bits twice
 
             if self.sniff_file and not os.path.isdir(self.sniff_file):
-                plain_bits_str = self.plain_bits_str
-                if plain_bits_str:
+                if plain_bits_str := self.plain_bits_str:
                     with open(self.sniff_file, "a") as f:
                         f.write("\n".join(plain_bits_str) + "\n")
 
@@ -198,7 +198,7 @@ class ProtocolSniffer(ProtocolAnalyzer, QObject):
             return
 
         # clear cache and start a new message
-        self.signal.iq_array = IQArray(self.__buffer[0:self.__current_buffer_index])
+        self.signal.iq_array = IQArray(self.__buffer[:self.__current_buffer_index])
         self.__clear_buffer()
         self.signal._qad = None
 

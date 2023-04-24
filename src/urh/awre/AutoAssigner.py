@@ -21,8 +21,7 @@ def auto_assign_participants(messages, participants):
 
     # Try to assign participants based on SRC_ADDRESS label and participant address
     for msg in filter(lambda m: m.participant is None, messages):
-        src_address = msg.get_src_address_from_data()
-        if src_address:
+        if src_address := msg.get_src_address_from_data():
             try:
                 msg.participant = next(p for p in participants if p.address_hex == src_address)
             except StopIteration:
@@ -32,7 +31,7 @@ def auto_assign_participants(messages, participants):
     rssis = np.array([msg.rssi for msg in messages], dtype=np.float32)
     min_rssi, max_rssi = util.minmax(rssis)
     center_spacing = (max_rssi - min_rssi) / (len(participants) - 1)
-    centers = [min_rssi + i * center_spacing for i in range(0, len(participants))]
+    centers = [min_rssi + i * center_spacing for i in range(len(participants))]
     rssi_assigned_centers = []
 
     for rssi in rssis:
@@ -54,12 +53,11 @@ def auto_assign_participant_addresses(messages, participants):
     """
     participants_without_address = [p for p in participants if not p.address_hex]
 
-    if len(participants_without_address) == 0:
+    if not participants_without_address:
         return
 
     for msg in messages:
         if msg.participant in participants_without_address:
-            src_address = msg.get_src_address_from_data()
-            if src_address:
+            if src_address := msg.get_src_address_from_data():
                 participants_without_address.remove(msg.participant)
                 msg.participant.address_hex = src_address

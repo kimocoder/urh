@@ -40,8 +40,8 @@ class PluginManager(object):
 
     @staticmethod
     def load_plugin(plugin_name):
-        classname = plugin_name + "Plugin"
-        module_path = "urh.plugins." + plugin_name + "." + classname
+        classname = f"{plugin_name}Plugin"
+        module_path = f"urh.plugins.{plugin_name}.{classname}"
 
         module = importlib.import_module(module_path)
         return getattr(module, classname)
@@ -50,7 +50,11 @@ class PluginManager(object):
         return any(plugin_name == p.name for p in self.installed_plugins if p.enabled)
 
     def get_plugin_by_name(self, plugin_name):
-        for plugin in self.installed_plugins:
-            if plugin.name == plugin_name:
-                return plugin
-        return None
+        return next(
+            (
+                plugin
+                for plugin in self.installed_plugins
+                if plugin.name == plugin_name
+            ),
+            None,
+        )

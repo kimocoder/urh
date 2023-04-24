@@ -7,13 +7,11 @@ import fileinput
 def gen(force=False):
     if sys.platform == "win32":
         bindir = r"c:\Python34\Lib\site-packages\PyQt5"
-    else:
-        bindir = "/usr/bin"
-
-    if sys.platform == "win32":
         uic_path = os.path.join(bindir, "pyuic5.bat")
         rcc_path = os.path.join(bindir, "pyrcc5.exe")
     else:
+        bindir = "/usr/bin"
+
         uic_path = os.path.join(bindir, "pyuic5")
         rcc_path = os.path.join(bindir, "pyrcc5")
 

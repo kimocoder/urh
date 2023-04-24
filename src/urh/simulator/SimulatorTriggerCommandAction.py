@@ -23,7 +23,7 @@ class SimulatorTriggerCommandAction(SimulatorItem):
         super().set_parent(value)
 
     def to_xml(self):
-        attrib = dict()
+        attrib = {}
         if self.command:
             attrib["command"] = self.command
         attrib["pass_transcript"] = str(int(self.pass_transcript))

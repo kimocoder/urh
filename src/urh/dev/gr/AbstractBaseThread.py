@@ -182,11 +182,13 @@ class AbstractBaseThread(QThread):
     def initialize_process(self):
         self.started.emit()
 
-        if not hasattr(sys, 'frozen'):
-            rp = os.path.realpath(os.path.join(os.path.dirname(__file__), "scripts"))
-        else:
-            rp = os.path.realpath(os.path.dirname(sys.executable))
-
+        rp = (
+            os.path.realpath(os.path.dirname(sys.executable))
+            if hasattr(sys, 'frozen')
+            else os.path.realpath(
+                os.path.join(os.path.dirname(__file__), "scripts")
+            )
+        )
         suffix = "_recv.py" if self._receiving else "_send.py"
         filename = self.device.lower().split(" ")[0] + suffix
 

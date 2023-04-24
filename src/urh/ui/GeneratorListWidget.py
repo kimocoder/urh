@@ -16,7 +16,7 @@ class GeneratorListWidget(QListWidget):
         sel_indexes = [index.row() for index in self.selectedIndexes()]
         edit_action = QAction("Edit", self)
         edit_action.triggered.connect(self.on_edit_action_triggered)
-        if len(sel_indexes) == 0:
+        if not sel_indexes:
             edit_action.setEnabled(False)
 
         menu.addAction(edit_action)

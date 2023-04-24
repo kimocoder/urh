@@ -25,22 +25,18 @@ if __name__ == '__main__':
     if sys.platform == "darwin":
         cmd.append("--onefile")
 
-    for hidden_import in HIDDEN_IMPORTS:
-        cmd.append("--hidden-import={}".format(hidden_import))
-
+    cmd.extend(
+        f"--hidden-import={hidden_import}" for hidden_import in HIDDEN_IMPORTS
+    )
     for src, dst in DATA:
-        cmd.append("--add-data")
-        cmd.append('"{}{}{}"'.format(src, os.pathsep, dst))
-
-    for exclude in EXCLUDE:
-        cmd.append("--exclude-module={}".format(exclude))
-
+        cmd.extend(("--add-data", f'"{src}{os.pathsep}{dst}"'))
+    cmd.extend(f"--exclude-module={exclude}" for exclude in EXCLUDE)
     urh_path = os.path.realpath(os.path.join(os.path.dirname(__file__), ".."))
 
     if sys.platform == "darwin":
-        cmd.append('--icon="{}"'.format(os.path.join(urh_path, "data/icons/appicon.icns")))
+        cmd.append(f'--icon="{os.path.join(urh_path, "data/icons/appicon.icns")}"')
     else:
-        cmd.append('--icon="{}"'.format(os.path.join(urh_path, "data/icons/appicon.ico")))
+        cmd.append(f'--icon="{os.path.join(urh_path, "data/icons/appicon.ico")}"')
 
     cmd.extend(["--distpath", "./pyinstaller"])
 

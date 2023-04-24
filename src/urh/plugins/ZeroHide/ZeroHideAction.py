@@ -10,7 +10,7 @@ class ZeroHideAction(QUndoCommand):
         self.following_zeros = following_zeros
         self.viewtype = view
 
-        self.setText("Hide zero sequences >= " + str(self.following_zeros))
+        self.setText(f"Hide zero sequences >= {self.following_zeros}")
 
         self.zero_hide_offsets = zero_hide_offsets
 
@@ -55,7 +55,7 @@ class ZeroHideAction(QUndoCommand):
             return result
 
         zero_counter = 0
-        for i in range(0, len(message)):
+        for i in range(len(message)):
             if message[i] == "0":
                 zero_counter += 1
             else:

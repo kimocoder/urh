@@ -56,14 +56,14 @@ class ProtocolTableModel(TableModel):
         self.undo_stack.push(del_action)
 
     def flags(self, index: QModelIndex):
-        if index.isValid():
-            alignment_offset = self.get_alignment_offset_at(index.row())
-            if index.column() < alignment_offset:
-                return Qt.ItemIsSelectable | Qt.ItemIsEnabled
-
-            if self.is_writeable:
-                return Qt.ItemIsEnabled | Qt.ItemIsEditable | Qt.ItemIsSelectable
-            else:
-                return Qt.ItemIsEnabled | Qt.ItemIsSelectable
-        else:
+        if not index.isValid():
             return Qt.NoItemFlags
+        alignment_offset = self.get_alignment_offset_at(index.row())
+        if index.column() < alignment_offset:
+            return Qt.ItemIsSelectable | Qt.ItemIsEnabled
+
+        return (
+            Qt.ItemIsEnabled | Qt.ItemIsEditable | Qt.ItemIsSelectable
+            if self.is_writeable
+            else Qt.ItemIsEnabled | Qt.ItemIsSelectable
+        )

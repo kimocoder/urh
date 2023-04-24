@@ -11,31 +11,26 @@ class IQArray(object):
         if data is None:
             self.__data = np.zeros((n, 2), dtype, order="C")
         else:
-            if skip_conversion:
-                self.__data = data
-            else:
-                self.__data = self.convert_array_to_iq(data)
-
+            self.__data = data if skip_conversion else self.convert_array_to_iq(data)
         assert self.__data.dtype not in (np.complex64, np.complex128)
 
     def __getitem__(self, item):
         return self.__data[item]
 
     def __setitem__(self, key, value: np.ndarray):
-        if isinstance(value, int) or isinstance(value, float):
+        if isinstance(value, (int, float)):
             self.__data[key] = value
             return
 
         if isinstance(value, IQArray):
             value = value.data
-        if value.dtype == np.complex64 or value.dtype == np.complex128:
+        if value.dtype in [np.complex64, np.complex128]:
             self.real[key] = value.real
             self.imag[key] = value.imag
+        elif value.ndim == 2:
+            self.__data[key] = value
         else:
-            if value.ndim == 2:
-                self.__data[key] = value
-            else:
-                self.__data[key] = value.reshape((-1, 2), order="C")
+            self.__data[key] = value.reshape((-1, 2), order="C")
 
     def __len__(self):
         return len(self.__data)
@@ -181,7 +176,7 @@ class IQArray(object):
                 return np.multiply(np.add(self.__data, 1.0, dtype=np.float32), 32767, dtype=np.float32).astype(np.uint16)
 
         if target_dtype not in (np.uint8, np.int8, np.uint16, np.int16, np.float32):
-            raise ValueError("Data type {} not supported".format(target_dtype))
+            raise ValueError(f"Data type {target_dtype} not supported")
 
         raise NotImplementedError("Conversion from {} to {} not supported", self.__data.dtype, target_dtype)
 

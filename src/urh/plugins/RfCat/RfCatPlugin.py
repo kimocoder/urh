@@ -114,17 +114,16 @@ class RfCatPlugin(SDRPlugin):
         self.process.stdin.flush()
 
     def open_rfcat(self):
-        if not self.rfcat_is_open:
-            try:
-                self.process = Popen([self.rfcat_executable, '-r'], stdin=PIPE, stdout=PIPE, stderr=PIPE)
-                self.rfcat_is_open = True
-                logger.debug("Successfully opened RfCat ({})".format(self.rfcat_executable))
-                return True
-            except Exception as e:
-                logger.debug("Could not open RfCat! ({})".format(e))
-                return False
-        else:
+        if self.rfcat_is_open:
             return True
+        try:
+            self.process = Popen([self.rfcat_executable, '-r'], stdin=PIPE, stdout=PIPE, stderr=PIPE)
+            self.rfcat_is_open = True
+            logger.debug(f"Successfully opened RfCat ({self.rfcat_executable})")
+            return True
+        except Exception as e:
+            logger.debug(f"Could not open RfCat! ({e})")
+            return False
 
     def close_rfcat(self):
         if self.rfcat_is_open:
@@ -132,7 +131,7 @@ class RfCatPlugin(SDRPlugin):
                 self.process.kill()
                 self.rfcat_is_open = False
             except Exception as e:
-                logger.debug("Could not close rfcat: {}".format(e))
+                logger.debug(f"Could not close rfcat: {e}")
 
     def set_parameter(self, param: str, log=True):  # returns error (True/False)
         try:
@@ -146,18 +145,22 @@ class RfCatPlugin(SDRPlugin):
         return False
 
     def read_async(self):
-        self.set_parameter("d.RFrecv({})[0]".format(500), log=False)
+        self.set_parameter('d.RFrecv(500)[0]', log=False)
 
     def configure_rfcat(self, modulation = "MOD_ASK_OOK", freq = 433920000, sample_rate = 2000000, samples_per_symbol = 500):
-        self.set_parameter("d.setMdmModulation({})".format(modulation), log=False)
-        self.set_parameter("d.setFreq({})".format(int(freq)), log=False)
+        self.set_parameter(f"d.setMdmModulation({modulation})", log=False)
+        self.set_parameter(f"d.setFreq({int(freq)})", log=False)
         self.set_parameter("d.setMdmSyncMode(0)", log=False)
-        self.set_parameter("d.setMdmDRate({})".format(int(sample_rate // samples_per_symbol)), log=False)
+        self.set_parameter(
+            f"d.setMdmDRate({int(sample_rate // samples_per_symbol)})", log=False
+        )
         self.set_parameter("d.setMaxPower()", log=False)
-        logger.info("Configured RfCat to Modulation={}, Frequency={} Hz, Datarate={} baud".format(modulation, int(freq), int(sample_rate // samples_per_symbol)))
+        logger.info(
+            f"Configured RfCat to Modulation={modulation}, Frequency={int(freq)} Hz, Datarate={int(sample_rate // samples_per_symbol)} baud"
+        )
 
     def send_data(self, data) -> str:
-        prepared_data = "d.RFxmit({})".format(str(data)[11:-1]) #[11:-1] Removes "bytearray(b...)
+        prepared_data = f"d.RFxmit({str(data)[11:-1]})"
         self.set_parameter(prepared_data, log=False)
 
     def __send_messages(self, messages, sample_rates):
@@ -170,23 +173,23 @@ class RfCatPlugin(SDRPlugin):
         if not self.open_rfcat():
             return False
         modulation = self.modulators[messages[0].modulator_index].modulation_type
-        if modulation == "ASK":
+        if modulation == "ASK" or modulation not in ["FSK", "GFSK", "PSK"]:
             modulation = "MOD_ASK_OOK"
         elif modulation == "FSK":
             modulation = "MOD_2FSK"
         elif modulation == "GFSK":
             modulation = "MOD_GFSK"
-        elif modulation == "PSK":
+        else:
             modulation = "MOD_MSK"
-        else:                   # Fallback
-            modulation = "MOD_ASK_OOK"
         self.configure_rfcat(modulation=modulation, freq=self.project_manager.device_conf["frequency"],
                              sample_rate=sample_rates[0], samples_per_symbol=messages[0].samples_per_symbol)
 
         repeats_from_settings = settings.read('num_sending_repeats', type=int)
         repeats = repeats_from_settings if repeats_from_settings > 0 else -1
         while (repeats > 0 or repeats == -1) and self.__sending_interrupt_requested == False:
-            logger.debug("Start iteration ({} left)".format(repeats if repeats > 0 else "infinite"))
+            logger.debug(
+                f'Start iteration ({repeats if repeats > 0 else "infinite"} left)'
+            )
             for i, msg in enumerate(messages):
                 if self.__sending_interrupt_requested:
                     break
@@ -194,17 +197,18 @@ class RfCatPlugin(SDRPlugin):
                 wait_time = msg.pause / sample_rates[i]
 
                 self.current_send_message_changed.emit(i)
-                error = self.send_data(self.bit_str_to_bytearray(msg.encoded_bits_str))
-                if not error:
+                if error := self.send_data(
+                    self.bit_str_to_bytearray(msg.encoded_bits_str)
+                ):
+                    self.is_sending = False
+                    Errors.generic_error("Could not connect to {0}:{1}".format(self.client_ip, self.client_port), msg=error)
+                    break
+                else:
                     logger.debug("Sent message {0}/{1}".format(i+1, len(messages)))
                     logger.debug("Waiting message pause: {0:.2f}s".format(wait_time))
                     if self.__sending_interrupt_requested:
                         break
                     time.sleep(wait_time)
-                else:
-                    self.is_sending = False
-                    Errors.generic_error("Could not connect to {0}:{1}".format(self.client_ip, self.client_port), msg=error)
-                    break
             if repeats > 0:
                 repeats -= 1
         logger.debug("Sending finished")

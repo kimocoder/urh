@@ -28,20 +28,19 @@ class SequenceNumberEngine(Engine):
             return []
 
         diff_matrix = self.create_difference_matrix(self.bitvectors, self.n_gram_length)
-        diff_frequencies_by_column = dict()
+        diff_frequencies_by_column = {}
 
         for j in range(diff_matrix.shape[1]):
             unique, counts = np.unique(diff_matrix[:, j], return_counts=True)
             diff_frequencies_by_column[j] = dict(zip(unique, counts))
 
         self._debug("Diff_frequencies_by_column", diff_frequencies_by_column)
-        scores_by_column = dict()
-        for column, frequencies in diff_frequencies_by_column.items():
-            if column not in self.already_labeled_cols:
-                scores_by_column[column] = self.calc_score(frequencies)
-            else:
-                scores_by_column[column] = 0
-
+        scores_by_column = {
+            column: self.calc_score(frequencies)
+            if column not in self.already_labeled_cols
+            else 0
+            for column, frequencies in diff_frequencies_by_column.items()
+        }
         self._debug("Scores by column", scores_by_column)
         result = []
         for candidate_column in sorted(scores_by_column, key=scores_by_column.get, reverse=True):
@@ -57,10 +56,12 @@ class SequenceNumberEngine(Engine):
 
             # For example, index 1 in diff matrix corresponds to index 1 and 2 of messages
             message_indices = set(message_indices) | set(message_indices + 1)
-            values = set()
-            for i in message_indices:
-                values.add(self.bitvectors[i][candidate_column * n:(candidate_column + 1) * n].tobytes())
-
+            values = {
+                self.bitvectors[i][
+                    candidate_column * n : (candidate_column + 1) * n
+                ].tobytes()
+                for i in message_indices
+            }
             matching_ranges = [r for r in result if r.message_indices == message_indices]
 
             try:

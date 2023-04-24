@@ -37,9 +37,9 @@ class BladeRF(Device):
 
         ret = bladerf.open(device_identifier)
         if not device_identifier:
-            ctrl_connection.send("OPEN:" + str(ret))
+            ctrl_connection.send(f"OPEN:{str(ret)}")
         else:
-            ctrl_connection.send("OPEN ({}):{}".format(device_identifier, ret))
+            ctrl_connection.send(f"OPEN ({device_identifier}):{ret}")
 
         ctrl_connection.send("If you experience problems, make sure you place a rbf file matching your device"
                              " at the correct location. See http://www.nuand.com/fpga_images/"
@@ -55,14 +55,13 @@ class BladeRF(Device):
     @classmethod
     def shutdown_device(cls, ctrl_connection, is_tx: bool):
         ret = bladerf.close()
-        ctrl_connection.send("CLOSE:" + str(ret))
+        ctrl_connection.send(f"CLOSE:{str(ret)}")
         return True
 
     @classmethod
     def prepare_sync_receive(cls, ctrl_connection: Connection):
         ctrl_connection.send("Initializing BladeRF..")
-        ret = bladerf.prepare_sync()
-        return ret
+        return bladerf.prepare_sync()
 
     @classmethod
     def receive_sync(cls, data_conn: Connection):
@@ -71,8 +70,7 @@ class BladeRF(Device):
     @classmethod
     def prepare_sync_send(cls, ctrl_connection: Connection):
         ctrl_connection.send("Initializing BladeRF...")
-        ret = bladerf.prepare_sync()
-        return ret
+        return bladerf.prepare_sync()
 
     @classmethod
     def send_sync(cls, data):

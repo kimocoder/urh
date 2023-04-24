@@ -22,20 +22,18 @@ class ParticipantListModel(QAbstractListModel):
         if role == Qt.DisplayRole:
             if row == 0:
                 return "not assigned"
-            else:
-                try:
-                    return str(self.participants[row-1])
-                except IndexError:
-                    return None
+            try:
+                return str(self.participants[row-1])
+            except IndexError:
+                return None
 
         elif role == Qt.CheckStateRole:
             if row == 0:
                 return Qt.Checked if self.show_unassigned else Qt.Unchecked
-            else:
-                try:
-                    return Qt.Checked if self.participants[row-1].show else Qt.Unchecked
-                except IndexError:
-                    return None
+            try:
+                return Qt.Checked if self.participants[row-1].show else Qt.Unchecked
+            except IndexError:
+                return None
 
     def setData(self, index: QModelIndex, value, role=None):
         if index.row() == 0 and role == Qt.CheckStateRole:

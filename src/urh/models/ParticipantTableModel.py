@@ -36,20 +36,21 @@ class ParticipantTableModel(QAbstractTableModel):
         return super().headerData(section, orientation, role)
 
     def data(self, index: QModelIndex, role=Qt.DisplayRole):
-        if role == Qt.DisplayRole or role == Qt.EditRole:
-            i = index.row()
-            j = index.column()
-            part = self.participants[i]
-            if j == 0:
-                return part.name
-            elif j == 1:
-                return part.shortname
-            elif j == 2:
-                return part.color_index
-            elif j == 3:
-                return part.relative_rssi
-            elif j == 4:
-                return part.address_hex
+        if role not in [Qt.DisplayRole, Qt.EditRole]:
+            return
+        i = index.row()
+        j = index.column()
+        part = self.participants[i]
+        if j == 0:
+            return part.name
+        elif j == 1:
+            return part.shortname
+        elif j == 2:
+            return part.color_index
+        elif j == 3:
+            return part.relative_rssi
+        elif j == 4:
+            return part.address_hex
 
     def setData(self, index: QModelIndex, value, role=Qt.DisplayRole):
         i = index.row()
@@ -80,26 +81,31 @@ class ParticipantTableModel(QAbstractTableModel):
         return True
 
     def flags(self, index: QModelIndex):
-        if not index.isValid():
-            return Qt.NoItemFlags
-
-        return Qt.ItemIsEditable | Qt.ItemIsEnabled | Qt.ItemIsSelectable
+        return (
+            Qt.ItemIsEditable | Qt.ItemIsEnabled | Qt.ItemIsSelectable
+            if index.isValid()
+            else Qt.NoItemFlags
+        )
 
     def __get_initial_name(self) -> (str, str):
-        given_names = set(p.name for p in self.participants)
+        given_names = {p.name for p in self.participants}
         name = next((name for name in self.INITIAL_NAMES if name not in given_names), None)
         if name is not None:
             return name, name[0]
 
-        name = next(("P" + str(i) for i in itertools.count() if "P" + str(i) not in given_names), None)
-        if name is not None:
-            return name, name[1:]
-
-        return "Participant X", "X"
+        name = next(
+            (
+                f"P{str(i)}"
+                for i in itertools.count()
+                if f"P{str(i)}" not in given_names
+            ),
+            None,
+        )
+        return (name, name[1:]) if name is not None else ("Participant X", "X")
 
     def add_participant(self):
-        used_colors = set(p.color_index for p in self.participants)
-        avail_colors = set(range(0, len(settings.PARTICIPANT_COLORS))) - used_colors
+        used_colors = {p.color_index for p in self.participants}
+        avail_colors = set(range(len(settings.PARTICIPANT_COLORS))) - used_colors
         if len(avail_colors) > 0:
             color_index = avail_colors.pop()
         else:
@@ -120,7 +126,9 @@ class ParticipantTableModel(QAbstractTableModel):
         if selection.isEmpty():
             start, end = len(self.participants) - 1, len(self.participants) - 1  # delete last element
         else:
-            start, end = min([rng.top() for rng in selection]), max([rng.bottom() for rng in selection])
+            start, end = min(rng.top() for rng in selection), max(
+                rng.bottom() for rng in selection
+            )
 
         del self.participants[start:end + 1]
         num_removed = (end + 1) - start
@@ -132,9 +140,14 @@ class ParticipantTableModel(QAbstractTableModel):
         n = len(self.participants)
         for p1, p2 in itertools.combinations(self.participants, 2):
             if p1.relative_rssi == p2.relative_rssi:
-                p1.relative_rssi = next((i for i in range(n)
-                                         if i not in set(p.relative_rssi for p in self.participants)),
-                                        0)
+                p1.relative_rssi = next(
+                    (
+                        i
+                        for i in range(n)
+                        if i not in {p.relative_rssi for p in self.participants}
+                    ),
+                    0,
+                )
 
         self.update()
         self.participant_edited.emit()
@@ -143,7 +156,9 @@ class ParticipantTableModel(QAbstractTableModel):
         if selection.isEmpty() or len(self.participants) < 1:
             return None, None
 
-        start, end = min([rng.top() for rng in selection]), max([rng.bottom() for rng in selection])
+        start, end = min(rng.top() for rng in selection), max(
+            rng.bottom() for rng in selection
+        )
         if start == 0:
             return None, None
 
@@ -159,7 +174,9 @@ class ParticipantTableModel(QAbstractTableModel):
         if selection.isEmpty() or len(self.participants) < 1:
             return None, None
 
-        start, end = min([rng.top() for rng in selection]), max([rng.bottom() for rng in selection])
+        start, end = min(rng.top() for rng in selection), max(
+            rng.bottom() for rng in selection
+        )
         if end >= len(self.participants) - 1:
             return None, None
 

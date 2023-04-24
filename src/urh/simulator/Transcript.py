@@ -26,7 +26,11 @@ class Transcript(object):
         if len(self.__data) == 0:
             return result
 
-        rng = range(0, len(self.__data)) if all_rounds else range(len(self.__data)-1, len(self.__data))
+        rng = (
+            range(len(self.__data))
+            if all_rounds
+            else range(len(self.__data) - 1, len(self.__data))
+        )
 
         for i in rng:
             for source, destination, msg, msg_index in self.__data[i]:
@@ -45,8 +49,8 @@ class Transcript(object):
         result = []
         for source, destination, msg, _ in self.__data[-1]:
             if participant == destination:
-                result.append("->" + msg.plain_bits_str)
+                result.append(f"->{msg.plain_bits_str}")
             elif participant == source:
-                result.append("<-" + msg.plain_bits_str)
+                result.append(f"<-{msg.plain_bits_str}")
 
         return "\n".join(result)

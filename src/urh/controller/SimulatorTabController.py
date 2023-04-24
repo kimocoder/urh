@@ -276,7 +276,7 @@ class SimulatorTabController(QWidget):
         modulator_dialog = ModulatorDialog(self.project_manager.modulators, tree_model=self.tree_model, parent=self)
         modulator_dialog.ui.comboBoxCustomModulations.setCurrentIndex(preselected_index)
         modulator_dialog.showMaximized()
-        modulator_dialog.initialize(selected_message.encoded_bits_str[0:16])
+        modulator_dialog.initialize(selected_message.encoded_bits_str[:16])
 
         modulator_dialog.finished.connect(self.refresh_modulators)
         modulator_dialog.finished.connect(self.generator_tab_controller.refresh_pause_list)
@@ -322,7 +322,7 @@ class SimulatorTabController(QWidget):
             text = self.tr("Detail view for item #") + self.active_item.index()
 
             if isinstance(self.active_item, SimulatorMessage):
-                text += " (" + self.active_item.message_type.name + ")"
+                text += f" ({self.active_item.message_type.name})"
                 self.ui.spinBoxRepeat.setValue(self.active_item.repeat)
                 self.ui.lblEncodingDecoding.setText(self.active_item.decoder.name)
 
@@ -432,13 +432,11 @@ class SimulatorTabController(QWidget):
                                      self.tr("You have no active participants.<br>"
                                              "Please add a participant in the <i>Participants tab</i> and "
                                              "assign it to at least one message as <i>source</i> or <i>destination.</i>"))
-                return
             else:
                 QMessageBox.critical(self, self.tr("No participant for simulation selected"),
                                      self.tr("Please check at least one participant from the "
                                              "<i>Simulate these participants</i> list."))
-                return
-
+            return
         try:
             self.get_simulator_dialog().exec_()
         except Exception as e:
@@ -507,8 +505,9 @@ class SimulatorTabController(QWidget):
 
     @pyqtSlot()
     def on_btn_save_clicked(self):
-        filename = FileOperator.ask_save_file_name(initial_name="myprofile.sim.xml", caption="Save simulator profile")
-        if filename:
+        if filename := FileOperator.ask_save_file_name(
+            initial_name="myprofile.sim.xml", caption="Save simulator profile"
+        ):
             self.save_simulator_file(filename)
 
     @pyqtSlot()

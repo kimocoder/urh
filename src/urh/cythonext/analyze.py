@@ -9,6 +9,17 @@ COMPILER_DIRECTIVES = {'language_level': 3,
                        }
 
 for module in MODULES:
-    call(["cython", "-a", "-X", ",".join("{}={}".format(key, val) for key, val in COMPILER_DIRECTIVES.items()),
-          "--cplus", "-3", module + ".pyx"])
-    Popen(["firefox", module + ".html"])
+    call(
+        [
+            "cython",
+            "-a",
+            "-X",
+            ",".join(
+                f"{key}={val}" for key, val in COMPILER_DIRECTIVES.items()
+            ),
+            "--cplus",
+            "-3",
+            f"{module}.pyx",
+        ]
+    )
+    Popen(["firefox", f"{module}.html"])

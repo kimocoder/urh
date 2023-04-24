@@ -94,8 +94,7 @@ class SendDialog(SendRecvDialog):
 
     @pyqtSlot()
     def on_graphics_view_save_as_clicked(self):
-        filename = FileOperator.ask_save_file_name("signal.complex")
-        if filename:
+        if filename := FileOperator.ask_save_file_name("signal.complex"):
             try:
                 try:
                     self.scene_manager.signal.sample_rate = self.device.sample_rate

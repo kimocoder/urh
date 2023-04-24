@@ -40,19 +40,19 @@ class ProtocolGenerator(object):
         self.length_in_bytes = length_in_bytes
         self.little_endian = little_endian
 
-        preambles_by_mt = dict() if preambles_by_mt is None else preambles_by_mt
+        preambles_by_mt = {} if preambles_by_mt is None else preambles_by_mt
 
         self.preambles_by_message_type = defaultdict(lambda: self.DEFAULT_PREAMBLE)
         for mt, preamble in preambles_by_mt.items():
             self.preambles_by_message_type[mt] = self.to_bits(preamble)
 
-        syncs_by_mt = dict() if syncs_by_mt is None else syncs_by_mt
+        syncs_by_mt = {} if syncs_by_mt is None else syncs_by_mt
 
         self.syncs_by_message_type = defaultdict(lambda: self.DEFAULT_SYNC)
         for mt, sync in syncs_by_mt.items():
             self.syncs_by_message_type[mt] = self.to_bits(sync)
 
-        sequence_numbers = dict() if sequence_numbers is None else sequence_numbers
+        sequence_numbers = {} if sequence_numbers is None else sequence_numbers
         self.sequence_numbers = defaultdict(lambda: 0)
         self.sequence_number_increment = sequence_number_increment
 
@@ -60,9 +60,7 @@ class ProtocolGenerator(object):
             self.sequence_numbers[mt] = seq
 
         if message_type_codes is None:
-            message_type_codes = dict()
-            for i, mt in enumerate(self.message_types):
-                message_type_codes[mt] = i
+            message_type_codes = {mt: i for i, mt in enumerate(self.message_types)}
         self.message_type_codes = message_type_codes
 
 
@@ -78,22 +76,24 @@ class ProtocolGenerator(object):
         if participant is None:
             return self.to_bits(self.BROADCAST_ADDRESS)
 
-        address = "0x" + participant.address_hex if not participant.address_hex.startswith(
-            "0x") else participant.address_hex
+        address = (
+            participant.address_hex
+            if participant.address_hex.startswith("0x")
+            else f"0x{participant.address_hex}"
+        )
         return self.to_bits(address)
 
     @staticmethod
     def to_bits(bit_or_hex_str: str):
-        if bit_or_hex_str.startswith("0x"):
-            lut = {"{0:x}".format(i): "{0:04b}".format(i) for i in range(16)}
-            return "".join(lut[c] for c in bit_or_hex_str[2:])
-        else:
+        if not bit_or_hex_str.startswith("0x"):
             return bit_or_hex_str
+        lut = {"{0:x}".format(i): "{0:04b}".format(i) for i in range(16)}
+        return "".join(lut[c] for c in bit_or_hex_str[2:])
 
     def decimal_to_bits(self, number: int, num_bits: int) -> str:
         len_formats = {8: "B", 16: "H", 32: "I", 64: "Q"}
         if num_bits not in len_formats:
-            raise ValueError("Invalid length for length field: {} bits".format(num_bits))
+            raise ValueError(f"Invalid length for length field: {num_bits} bits")
 
         struct_format = "<" if self.little_endian else ">"
         struct_format += len_formats[num_bits]
@@ -180,7 +180,8 @@ class ProtocolGenerator(object):
             elif lbl.field_type.function == FieldType.Function.DATA:
                 if len(data) != len_field:
                     raise ValueError(
-                        "Length of data ({} bits) != length data field ({} bits)".format(len(data), len_field))
+                        f"Length of data ({len(data)} bits) != length data field ({len_field} bits)"
+                    )
                 bits.append(data)
 
             start = lbl.end

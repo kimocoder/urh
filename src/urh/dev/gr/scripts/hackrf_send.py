@@ -24,9 +24,7 @@ class top_block(gr.top_block):
         self.bb_gain = bb_gain
         self.bandwidth = bandwidth
 
-        self.osmosdr_sink_0 = osmosdr.sink(
-            args="numchan=" + str(1) + " " + 'hackrf'
-        )
+        self.osmosdr_sink_0 = osmosdr.sink(args='numchan=1 hackrf')
         self.osmosdr_sink_0.set_time_unknown_pps(osmosdr.time_spec_t())
         self.osmosdr_sink_0.set_sample_rate(sample_rate)
         self.osmosdr_sink_0.set_center_freq(frequency, 0)

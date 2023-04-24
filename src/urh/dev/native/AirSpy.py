@@ -21,24 +21,24 @@ class AirSpy(Device):
     @classmethod
     def setup_device(cls, ctrl_connection: Connection, device_identifier):
         ret = airspy.open()
-        ctrl_connection.send("OPEN:" + str(ret))
+        ctrl_connection.send(f"OPEN:{str(ret)}")
         return ret == 0
 
     @classmethod
     def shutdown_device(cls, ctrl_connection, is_tx=False):
         logger.debug("AirSpy: closing device")
         ret = airspy.stop_rx()
-        ctrl_connection.send("Stop RX:" + str(ret))
+        ctrl_connection.send(f"Stop RX:{str(ret)}")
 
         ret = airspy.close()
-        ctrl_connection.send("EXIT:" + str(ret))
+        ctrl_connection.send(f"EXIT:{str(ret)}")
 
         return True
 
     @classmethod
     def enter_async_receive_mode(cls, data_connection: Connection, ctrl_connection: Connection):
         ret = airspy.start_rx(data_connection.send_bytes)
-        ctrl_connection.send("Start RX MODE:" + str(ret))
+        ctrl_connection.send(f"Start RX MODE:{str(ret)}")
         return ret
 
     def __init__(self, center_freq, sample_rate, bandwidth, gain, if_gain=1, baseband_gain=1,

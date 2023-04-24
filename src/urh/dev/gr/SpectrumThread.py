@@ -56,7 +56,7 @@ class SpectrumThread(AbstractBaseThread):
                         self.y = w[idx].astype(np.float32)
 
                         self.data = np.zeros(len(self.data), dtype=np.complex64)
-                        self.data[0:len(tmp)] = tmp
+                        self.data[:len(tmp)] = tmp
                         self.current_index = len(tmp)
                         continue
 

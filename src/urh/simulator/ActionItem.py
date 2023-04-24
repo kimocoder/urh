@@ -60,10 +60,10 @@ class TriggerCommandActionItem(ActionItem):
 class SleepActionItem(ActionItem):
     def __init__(self, model_item: SimulatorSleepAction, parent=None):
         super().__init__(model_item=model_item, parent=parent)
-        self.text.setPlainText("[" + model_item.caption + "]")
+        self.text.setPlainText(f"[{model_item.caption}]")
 
     def refresh(self):
-        self.text.setPlainText("[" + self.model_item.caption + "]")
+        self.text.setPlainText(f"[{self.model_item.caption}]")
 
 
 class CounterActionItem(ActionItem):

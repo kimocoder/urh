@@ -107,5 +107,5 @@ class ContinuousSendDialog(SendDialog):
 
             self._create_device_connects()
         except ValueError as e:
-            self.ui.txtEditErrors.setText("<font color='red'>" + str(e) + "<font>")
+            self.ui.txtEditErrors.setText(f"<font color='red'>{str(e)}<font>")
             self.ui.btnStart.setEnabled(False)

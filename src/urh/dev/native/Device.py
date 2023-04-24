@@ -78,19 +78,19 @@ class Device(object):
         if method_name:
             try:
                 try:
-                    check_method_name = cls.DEVICE_METHODS[tag + "_get_allowed_values"]
+                    check_method_name = cls.DEVICE_METHODS[f"{tag}_get_allowed_values"]
                     allowed_values = getattr(cls.DEVICE_LIB, check_method_name)()
                     next_allowed = min(allowed_values, key=lambda x: abs(x - value))
                     if value != next_allowed:
-                        ctrl_connection.send("{}: {} not in range of supported values. Assuming {}".format(
-                            tag, value, next_allowed
-                        ))
+                        ctrl_connection.send(
+                            f"{tag}: {value} not in range of supported values. Assuming {next_allowed}"
+                        )
                         value = next_allowed
                 except (KeyError, AttributeError):
                     pass
 
                 ret = getattr(cls.DEVICE_LIB, method_name)(value)
-                if isinstance(value, int) or isinstance(value, float):
+                if isinstance(value, (int, float)):
                     value = Formatter.big_value_with_suffix(value)
                 ctrl_connection.send("{0} to {1}:{2}".format(tag, value, ret))
             except AttributeError as e:
@@ -227,9 +227,9 @@ class Device(object):
             time.sleep(0.75)
 
         if exit_requested:
-            logger.debug("{}: exit requested. Stopping sending".format(cls.__class__.__name__))
+            logger.debug(f"{cls.__class__.__name__}: exit requested. Stopping sending")
         if send_config.sending_is_finished():
-            logger.debug("{}: sending is finished.".format(cls.__class__.__name__))
+            logger.debug(f"{cls.__class__.__name__}: sending is finished.")
 
         cls.shutdown_device(ctrl_connection, is_tx=True)
         ctrl_connection.close()
@@ -361,7 +361,11 @@ class Device(object):
 
     def log_retcode(self, retcode: int, action: str, msg=""):
         msg = str(msg)
-        error_code_msg = self.error_codes[retcode] if retcode in self.error_codes else "Error Code: " + str(retcode)
+        error_code_msg = (
+            self.error_codes[retcode]
+            if retcode in self.error_codes
+            else f"Error Code: {retcode}"
+        )
 
         if retcode == self.success:
             if msg:
@@ -407,7 +411,7 @@ class Device(object):
     def set_device_bandwidth(self, bw):
         try:
             self.parent_ctrl_conn.send((self.Command.SET_BANDWIDTH.name, int(bw)))
-        except (BrokenPipeError, OSError):
+        except OSError:
             pass
 
     @property
@@ -423,7 +427,7 @@ class Device(object):
     def set_device_frequency(self, value):
         try:
             self.parent_ctrl_conn.send((self.Command.SET_FREQUENCY.name, int(value)))
-        except (BrokenPipeError, OSError):
+        except OSError:
             pass
 
     @property
@@ -440,7 +444,7 @@ class Device(object):
         try:
             # Do not cast gain to int here, as it may be float e.g. for normalized USRP gain or LimeSDR gain
             self.parent_ctrl_conn.send((self.Command.SET_RF_GAIN.name, gain))
-        except (BrokenPipeError, OSError):
+        except OSError:
             pass
 
     @property
@@ -457,7 +461,7 @@ class Device(object):
         try:
             # Do not cast gain to int here, as it may be float e.g. for normalized USRP gain or LimeSDR gain
             self.parent_ctrl_conn.send((self.Command.SET_IF_GAIN.name, if_gain))
-        except (BrokenPipeError, OSError):
+        except OSError:
             pass
 
     @property
@@ -474,7 +478,7 @@ class Device(object):
         try:
             # Do not cast gain to int here, as it may be float e.g. for normalized USRP gain or LimeSDR gain
             self.parent_ctrl_conn.send((self.Command.SET_BB_GAIN.name, baseband_gain))
-        except (BrokenPipeError, OSError):
+        except OSError:
             pass
 
     @property
@@ -490,7 +494,7 @@ class Device(object):
     def set_device_sample_rate(self, sample_rate):
         try:
             self.parent_ctrl_conn.send((self.Command.SET_SAMPLE_RATE.name, int(sample_rate)))
-        except (BrokenPipeError, OSError):
+        except OSError:
             pass
 
     @property
@@ -506,7 +510,7 @@ class Device(object):
     def set_device_channel_index(self, value):
         try:
             self.parent_ctrl_conn.send((self.Command.SET_CHANNEL_INDEX.name, int(value)))
-        except (BrokenPipeError, OSError):
+        except OSError:
             pass
 
     @property
@@ -522,7 +526,7 @@ class Device(object):
     def set_device_antenna_index(self, value):
         try:
             self.parent_ctrl_conn.send((self.Command.SET_ANTENNA_INDEX.name, int(value)))
-        except (BrokenPipeError, OSError):
+        except OSError:
             pass
 
     @property
@@ -531,7 +535,7 @@ class Device(object):
 
     @bias_tee_enabled.setter
     def bias_tee_enabled(self, value: bool):
-        value = bool(value)
+        value = value
         if value != self.__bias_tee_enabled:
             self.__bias_tee_enabled = value
             self.set_device_bias_tee_enabled(value)
@@ -539,7 +543,7 @@ class Device(object):
     def set_device_bias_tee_enabled(self, value):
         try:
             self.parent_ctrl_conn.send((self.Command.SET_BIAS_TEE_ENABLED.name, int(value)))
-        except (BrokenPipeError, OSError):
+        except OSError:
             pass
 
     @property
@@ -555,7 +559,7 @@ class Device(object):
     def set_device_freq_correction(self, value):
         try:
             self.parent_ctrl_conn.send((self.Command.SET_FREQUENCY_CORRECTION.name, int(value)))
-        except (BrokenPipeError, OSError):
+        except OSError:
             pass
 
     @property
@@ -571,7 +575,7 @@ class Device(object):
     def set_device_direct_sampling_mode(self, value):
         try:
             self.parent_ctrl_conn.send((self.Command.SET_DIRECT_SAMPLING_MODE.name, int(value)))
-        except (BrokenPipeError, OSError):
+        except OSError:
             pass
 
     def start_rx_mode(self):
@@ -595,8 +599,8 @@ class Device(object):
     def stop_rx_mode(self, msg):
         try:
             self.parent_ctrl_conn.send(self.Command.STOP.name)
-        except (BrokenPipeError, OSError) as e:
-            logger.debug("Closing parent control connection: " + str(e))
+        except OSError as e:
+            logger.debug(f"Closing parent control connection: {str(e)}")
 
         logger.info("{0}: Stopping RX Mode: {1}".format(self.__class__.__name__, msg))
 
@@ -631,8 +635,8 @@ class Device(object):
     def stop_tx_mode(self, msg):
         try:
             self.parent_ctrl_conn.send(self.Command.STOP.name)
-        except (BrokenPipeError, OSError) as e:
-            logger.debug("Closing parent control connection: " + str(e))
+        except OSError as e:
+            logger.debug(f"Closing parent control connection: {str(e)}")
 
         logger.info("{0}: Stopping TX Mode: {1}".format(self.__class__.__name__, msg))
 
@@ -673,8 +677,8 @@ class Device(object):
                     self.log_retcode(int(return_code), action)
                 except ValueError:
                     self.device_messages.append("{0}: {1}".format(self.__class__.__name__, message))
-            except (EOFError, UnpicklingError, OSError, ConnectionResetError) as e:
-                logger.info("Exiting read device message thread due to " + str(e))
+            except (EOFError, UnpicklingError, OSError) as e:
+                logger.info(f"Exiting read device message thread due to {str(e)}")
                 break
         self.is_transmitting = False
         self.is_receiving = False

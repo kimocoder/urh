@@ -401,12 +401,12 @@ class SimulatorDialog(QDialog):
         if self.ui.checkBoxCaptureFullRX.isChecked():
             self.scene_manager = LiveSceneManager(np.array([], dtype=self.simulator.sniffer.rcv_device.data_type),
                                                   parent=self)
-            self.ui.graphicsViewPreview.setScene(self.scene_manager.scene)
         else:
             self.scene_manager = SniffSceneManager(np.array([], dtype=self.simulator.sniffer.rcv_device.data_type),
                                                    parent=self)
 
-            self.ui.graphicsViewPreview.setScene(self.scene_manager.scene)
+
+        self.ui.graphicsViewPreview.setScene(self.scene_manager.scene)
 
     @pyqtSlot()
     def on_checkbox_capture_full_rx_clicked(self):
@@ -416,11 +416,14 @@ class SimulatorDialog(QDialog):
     @pyqtSlot()
     def on_btn_save_rx_clicked(self):
         rx_device = self.simulator.sniffer.rcv_device
-        if isinstance(rx_device.data, np.ndarray) or isinstance(rx_device.data, IQArray):
+        if isinstance(rx_device.data, (np.ndarray, IQArray)):
             data = IQArray(rx_device.data[:rx_device.current_index])
-            filename = FileOperator.ask_signal_file_name_and_save("simulation_capture", data,
-                                                                  sample_rate=rx_device.sample_rate, parent=self)
-            if filename:
+            if filename := FileOperator.ask_signal_file_name_and_save(
+                "simulation_capture",
+                data,
+                sample_rate=rx_device.sample_rate,
+                parent=self,
+            ):
                 data.tofile(filename)
                 self.rx_file_saved.emit(filename)
 

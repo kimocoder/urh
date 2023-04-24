@@ -14,12 +14,12 @@ with open("top_block.py", "r") as f:
         if not start_vars and line.strip().startswith("# Variables"):
             start_vars = True
         elif start_vars and line.strip().startswith("self."):
-            variables.append(re.search("= (.*) =", line).group(1))
+            variables.append(re.search("= (.*) =", line)[1])
         elif line.strip().startswith("# Blocks"):
             start_vars, start_blocks = False, True
         elif start_blocks and line.strip().startswith("self."):
             try:
-                used_variables.append(re.search(r"\(([a-z\_0-9]*)[\)\,]", line).group(1))
+                used_variables.append(re.search(r"\(([a-z\_0-9]*)[\)\,]", line)[1])
             except AttributeError:
                 pass
         elif line.strip().startswith("# Connections"):
@@ -34,13 +34,12 @@ imports_written = False
 with open("top_block.py", "r") as r:
     with open(TARGET, "w") as f:
         for line in r:
-            if line.strip().startswith("#"):
-                if not imports_written:
-                    f.write("from optparse import OptionParser\n")
-                    f.write("from InputHandlerThread import InputHandlerThread\n")
-                    f.write("import Initializer\n")
-                    f.write("\nInitializer.init_path()\n")
-                    imports_written = True
+            if line.strip().startswith("#") and not imports_written:
+                f.write("from optparse import OptionParser\n")
+                f.write("from InputHandlerThread import InputHandlerThread\n")
+                f.write("import Initializer\n")
+                f.write("\nInitializer.init_path()\n")
+                imports_written = True
 
             if line.strip().startswith("def __init__"):
                 f.write(line.replace("self", "self, " + ", ".join(used_variables)))
@@ -49,7 +48,7 @@ with open("top_block.py", "r") as r:
             if not start_vars and line.strip().startswith("# Variables"):
                 start_vars = True
             elif start_vars and line.strip().startswith("self."):
-                var_name = re.search("= (.*) =", line).group(1)
+                var_name = re.search("= (.*) =", line)[1]
                 if var_name in used_variables:
                     f.write(line[:line.rindex("=")]+"\n")
                 continue
@@ -72,8 +71,8 @@ with open("top_block.py", "r") as r:
                 f.write("    parser.add_option('-a', '--antenna-index', dest='antenna_index', default=0)\n")
                 f.write("    parser.add_option('-p', '--port', dest='port', default=1234)\n\n")
                 f.write("    (options, args) = parser.parse_args()\n")
-                args = ", ".join(["int(options.{})".format(var) for var in used_variables])
-                f.write("    tb = top_block({})\n".format(args))
+                args = ", ".join([f"int(options.{var})" for var in used_variables])
+                f.write(f"    tb = top_block({args})\n")
                 f.write("    iht = InputHandlerThread(tb)\n")
                 f.write("    iht.start()\n")
                 f.write("    tb.start()\n")

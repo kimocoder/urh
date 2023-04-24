@@ -13,7 +13,7 @@ from PyQt5.QtWidgets import QApplication, QWidget, QStyleFactory
 try:
     locale.setlocale(locale.LC_ALL, '')
 except locale.Error as e:
-    print("Ignoring locale error {}".format(e))
+    print(f"Ignoring locale error {e}")
 
 GENERATE_UI = True
 

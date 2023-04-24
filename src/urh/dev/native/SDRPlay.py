@@ -45,7 +45,7 @@ class SDRPlay(Device):
     def device_dict_to_string(d):
         hw_ver = d["hw_version"]
         serial = d["serial"]
-        return "RSP {} ({})".format(hw_ver, serial)
+        return f"RSP {hw_ver} ({serial})"
 
     @property
     def device_parameters(self):
@@ -71,8 +71,8 @@ class SDRPlay(Device):
                                   cls.sdrplay_initial_bandwidth, cls.sdrplay_initial_if_gain, data_connection)
 
         ctrl_connection.send(
-            "Start RX MODE with \n  FREQUENCY={}\n  SAMPLE_RATE={}\n  BANDWIDTH={}\n  GAIN={}\n  IF_GAIN={}:{}".format(
-                cls.sdrplay_initial_freq, cls.sdrplay_initial_sample_rate, cls.sdrplay_initial_bandwidth, cls.sdrplay_initial_gain, cls.sdrplay_initial_if_gain, ret))
+            f"Start RX MODE with \n  FREQUENCY={cls.sdrplay_initial_freq}\n  SAMPLE_RATE={cls.sdrplay_initial_sample_rate}\n  BANDWIDTH={cls.sdrplay_initial_bandwidth}\n  GAIN={cls.sdrplay_initial_gain}\n  IF_GAIN={cls.sdrplay_initial_if_gain}:{ret}"
+        )
 
         return ret
 
@@ -83,9 +83,11 @@ class SDRPlay(Device):
         try:
             device_list = sdrplay.get_devices()
             device_number = int(identifier)
-            ctrl_connection.send("CONNECTED DEVICES: {}".format(", ".join(map(cls.device_dict_to_string, device_list))))
+            ctrl_connection.send(
+                f'CONNECTED DEVICES: {", ".join(map(cls.device_dict_to_string, device_list))}'
+            )
             ret = sdrplay.set_device_index(device_number)
-            ctrl_connection.send("SET DEVICE NUMBER to {}:{}".format(device_number, ret))
+            ctrl_connection.send(f"SET DEVICE NUMBER to {device_number}:{ret}")
         except (TypeError, ValueError) as e:
             logger.exception(e)
             return False
@@ -110,11 +112,11 @@ class SDRPlay(Device):
     def shutdown_device(cls, ctrl_connection, is_tx: bool):
         logger.debug("SDRPLAY: closing device")
         ret = sdrplay.close_stream()
-        ctrl_connection.send("CLOSE STREAM:" + str(ret))
+        ctrl_connection.send(f"CLOSE STREAM:{str(ret)}")
 
         if cls.sdrplay_device_index is not None:
             ret = sdrplay.release_device_index()
-            ctrl_connection.send("RELEASE DEVICE:" + str(ret))
+            ctrl_connection.send(f"RELEASE DEVICE:{str(ret)}")
 
     @staticmethod
     def bytes_to_iq(buffer):

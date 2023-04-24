@@ -21,7 +21,7 @@ class PlutoSDR(Device):
     @classmethod
     def get_device_list(cls):
         descs, uris = plutosdr.scan_devices()
-        return ["{} [{}]".format(desc, uri) for desc, uri in zip(descs, uris)]
+        return [f"{desc} [{uri}]" for desc, uri in zip(descs, uris)]
 
     @classmethod
     def adapt_num_read_samples_to_sample_rate(cls, sample_rate):
@@ -31,7 +31,7 @@ class PlutoSDR(Device):
     def setup_device(cls, ctrl_connection: Connection, device_identifier):
         device_identifier = device_identifier if isinstance(device_identifier, str) else ""
         try:
-            device_identifier = re.search(r"(?<=\[).+?(?=\])", device_identifier).group(0)
+            device_identifier = re.search(r"(?<=\[).+?(?=\])", device_identifier)[0]
         except (IndexError, AttributeError):
             pass
 
@@ -44,7 +44,7 @@ class PlutoSDR(Device):
                 return False
 
         ret = plutosdr.open(device_identifier)
-        ctrl_connection.send("OPEN ({}):{}".format(device_identifier, ret))
+        ctrl_connection.send(f"OPEN ({device_identifier}):{ret}")
         return ret == 0
 
     @classmethod
@@ -55,14 +55,13 @@ class PlutoSDR(Device):
     @classmethod
     def shutdown_device(cls, ctrl_connection, is_tx: bool):
         ret = plutosdr.close()
-        ctrl_connection.send("CLOSE:" + str(ret))
+        ctrl_connection.send(f"CLOSE:{str(ret)}")
         return True
 
     @classmethod
     def prepare_sync_receive(cls, ctrl_connection: Connection):
         ctrl_connection.send("Initializing PlutoSDR..")
-        ret = plutosdr.setup_rx(cls.SYNC_RX_CHUNK_SIZE)
-        return ret
+        return plutosdr.setup_rx(cls.SYNC_RX_CHUNK_SIZE)
 
     @classmethod
     def receive_sync(cls, data_conn: Connection):
@@ -71,8 +70,7 @@ class PlutoSDR(Device):
     @classmethod
     def prepare_sync_send(cls, ctrl_connection: Connection):
         ctrl_connection.send("Initializing PlutoSDR...")
-        ret = plutosdr.setup_tx(cls.SYNC_TX_CHUNK_SIZE // 2)
-        return ret
+        return plutosdr.setup_tx(cls.SYNC_TX_CHUNK_SIZE // 2)
 
     @classmethod
     def send_sync(cls, data):

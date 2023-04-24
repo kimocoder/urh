@@ -12,7 +12,7 @@ class SimulatorSleepAction(SimulatorItem):
 
     @property
     def caption(self):
-        return "Sleep for " + Formatter.science_time(self.sleep_time)
+        return f"Sleep for {Formatter.science_time(self.sleep_time)}"
 
     def validate(self):
         return True

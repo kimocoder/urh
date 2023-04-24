@@ -89,10 +89,7 @@ class ProtocolLabel(object):
 
     @property
     def field_type_function(self):
-        if self.field_type is not None:
-            return self.field_type.function
-        else:
-            return None
+        return self.field_type.function if self.field_type is not None else None
 
     @property
     def name(self):
@@ -123,7 +120,7 @@ class ProtocolLabel(object):
     def display_order_str(self) -> str:
         try:
             bit_order = self.DISPLAY_BIT_ORDERS[self.display_bit_order_index]
-            return bit_order + "/{}".format("BE" if self.display_endianness == "big" else "LE")
+            return f'{bit_order}/{"BE" if self.display_endianness == "big" else "LE"}'
         except IndexError:
             return ""
 
@@ -147,10 +144,9 @@ class ProtocolLabel(object):
     def get_copy(self):
         if self.copied:
             return self
-        else:
-            result = copy.deepcopy(self)
-            result.copied = True
-            return result
+        result = copy.deepcopy(self)
+        result.copied = True
+        return result
 
     def __lt__(self, other):
         if self.start != other.start:
@@ -208,18 +204,20 @@ class ProtocolLabel(object):
         :type field_types_by_caption: dict[str, FieldType]
         :return:
         """
-        field_types_by_caption = dict() if field_types_by_caption is None else field_types_by_caption
+        field_types_by_caption = (
+            {} if field_types_by_caption is None else field_types_by_caption
+        )
 
         name = tag.get("name")
         start, end = int(tag.get("start", 0)), int(tag.get("end", 0)) - 1
         color_index = int(tag.get("color_index", 0))
 
         result = ProtocolLabel(name=name, start=start, end=end, color_index=color_index)
-        result.apply_decoding = True if tag.get("apply_decoding", 'True') == "True" else False
+        result.apply_decoding = tag.get("apply_decoding", 'True') == "True"
         result.show = Qt.Checked if Formatter.str2val(tag.get("show", 0), int) else Qt.Unchecked
         result.fuzz_me = Qt.Checked if Formatter.str2val(tag.get("fuzz_me", 0), int) else Qt.Unchecked
         result.fuzz_values = tag.get("fuzz_values", "").split(",")
-        result.auto_created = True if tag.get("auto_created", 'False') == "True" else False
+        result.auto_created = tag.get("auto_created", 'False') == "True"
 
         if result.name in field_types_by_caption:
             result.field_type = field_types_by_caption[result.name]

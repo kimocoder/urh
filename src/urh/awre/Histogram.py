@@ -88,7 +88,7 @@ class Histogram(object):
 
     def __vector_to_string(self, data_vector) -> str:
         lut = {i: "{0:x}".format(i) for i in range(16)}
-        return "".join(lut[x] if x in lut else " {} ".format(x) for x in data_vector)
+        return "".join(lut.get(x, f" {x} ") for x in data_vector)
 
     def plot(self):
         import matplotlib.pyplot as plt

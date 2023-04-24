@@ -71,7 +71,7 @@ class SimulatorMessageFieldModel(QAbstractTableModel):
                 elif lbl.value_type_index == 3:
                     return lbl.external_program
                 elif lbl.value_type_index == 4:
-                    return "Range (Decimal): " + str(lbl.random_min) + " - " + str(lbl.random_max)
+                    return f"Range (Decimal): {str(lbl.random_min)} - {str(lbl.random_max)}"
         elif role == Qt.EditRole:
             if j == 0:
                 return lbl.name
@@ -160,7 +160,7 @@ class SimulatorMessageFieldModel(QAbstractTableModel):
 
         flags = Qt.ItemIsEnabled | Qt.ItemIsSelectable
 
-        if not(col == 3 and label.value_type_index == 1):
+        if col != 3 or label.value_type_index != 1:
             flags |= Qt.ItemIsEditable
 
         return flags

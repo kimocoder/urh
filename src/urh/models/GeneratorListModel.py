@@ -15,10 +15,7 @@ class GeneratorListModel(QAbstractListModel):
     
     @property
     def labels(self):
-        if self.message:
-            return self.message.message_type
-        else:
-            return []
+        return self.message.message_type if self.message else []
     
     @property
     def message(self):
@@ -45,7 +42,7 @@ class GeneratorListModel(QAbstractListModel):
             nfuzzval = len(self.labels[row].fuzz_values)
             nfuzzval = str(nfuzzval - 1) if nfuzzval > 1 else "empty"
             try:
-                return self.labels[row].name + " (" + nfuzzval + ")"
+                return f"{self.labels[row].name} ({nfuzzval})"
             except TypeError:
                 return ""
         elif role == Qt.CheckStateRole:

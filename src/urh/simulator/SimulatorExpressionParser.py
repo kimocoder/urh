@@ -59,7 +59,12 @@ class SimulatorExpressionParser(QObject):
             self.validate_formula_node(node) if is_formula else self.validate_condition_node(node)
         except SyntaxError as err:
             valid = False
-            message = "<pre>" + html.escape(expr) + "<br/>" + " " * err.offset + "^</pre>" + str(err)
+            message = (
+                f"<pre>{html.escape(expr)}<br/>"
+                + " " * err.offset
+                + "^</pre>"
+                + str(err)
+            )
         else:
             message = self.formula_help if is_formula else self.rule_condition_help
 
@@ -89,7 +94,7 @@ class SimulatorExpressionParser(QObject):
             logger.error("Error during parsing")
 
     def evaluate_attribute_node(self, node, to_string=False):
-        identifier = node.value.id + "." + node.attr
+        identifier = f"{node.value.id}.{node.attr}"
         if isinstance(self.simulator_config.item_dict[identifier], SimulatorProtocolLabel):
             label = self.simulator_config.item_dict[identifier]
             message = label.parent()
@@ -127,7 +132,7 @@ class SimulatorExpressionParser(QObject):
 
             self.validate_condition_node(node.operand)
         elif isinstance(node, ast.Compare):
-            if not (len(node.ops) == 1 and len(node.comparators) == 1):
+            if len(node.ops) != 1 or len(node.comparators) != 1:
                 self.raise_syntax_error("", node.lineno, node.col_offset)
 
             if type(node.ops[0]) not in self.op_cond:
@@ -159,18 +164,24 @@ class SimulatorExpressionParser(QObject):
         if not isinstance(node.value, ast.Name):
             self.raise_syntax_error("", node.lineno, node.col_offset)
 
-        identifier = node.value.id + "." + node.attr
+        identifier = f"{node.value.id}.{node.attr}"
 
         if not self.is_valid_identifier(identifier):
-            self.raise_syntax_error("'" + identifier + "' is not a valid label identifier",
-                                    node.lineno, node.col_offset)
+            self.raise_syntax_error(
+                f"'{identifier}' is not a valid label identifier",
+                node.lineno,
+                node.col_offset,
+            )
 
     def is_valid_identifier(self, identifier):
         try:
             item = self.simulator_config.item_dict[identifier]
-            return isinstance(item, SimulatorProtocolLabel) or\
-                   isinstance(item, SimulatorCounterAction) or \
-                   (isinstance(item, SimulatorTriggerCommandAction) and identifier.endswith("rc"))
+            return isinstance(
+                item, (SimulatorProtocolLabel, SimulatorCounterAction)
+            ) or (
+                isinstance(item, SimulatorTriggerCommandAction)
+                and identifier.endswith("rc")
+            )
         except KeyError:
             return False
 

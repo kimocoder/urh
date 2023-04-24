@@ -8,7 +8,9 @@ class Participant(object):
     def __init__(self, name: str, shortname: str = None, address_hex: str = None,
                  color_index=0, id: str = None, relative_rssi=0, simulate=False):
         self.name = name if name else "unknown"
-        self.shortname = shortname if shortname else name[0].upper() if len(name) > 0 else "X"
+        self.shortname = (
+            shortname if shortname else name[0].upper() if name != "" else "X"
+        )
         self.address_hex = address_hex if address_hex else ""
         self.color_index = color_index
         self.show = True
@@ -71,7 +73,7 @@ class Participant(object):
         shortname = tag.get("shortname", "X")
         address_hex = tag.get("address_hex", "")
         color_index = int(tag.get("color_index", 0))
-        color_index = 0 if color_index < 0 else color_index
+        color_index = max(color_index, 0)
         relative_rssi = int(tag.get("relative_rssi", 0))
         try:
             simulate = bool(int(tag.get("simulate", "0")))
@@ -99,7 +101,7 @@ class Participant(object):
         if xml_tag is None:
             return []
 
-        participants = []
-        for parti_tag in xml_tag.findall("participant"):
-            participants.append(Participant.from_xml(parti_tag))
-        return participants
+        return [
+            Participant.from_xml(parti_tag)
+            for parti_tag in xml_tag.findall("participant")
+        ]

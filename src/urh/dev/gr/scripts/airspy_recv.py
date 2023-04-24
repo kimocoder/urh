@@ -18,18 +18,16 @@ class top_block(gr.top_block):
     def __init__(self, sample_rate, frequency, freq_correction, rf_gain, if_gain, bb_gain, bandwidth, port):
         gr.top_block.__init__(self, "Top Block")
 
-        self.sample_rate = sample_rate 
-        self.rf_gain = rf_gain 
-        self.port = port 
-        self.if_gain = if_gain 
-        self.frequency = frequency 
-        self.freq_correction = freq_correction 
-        self.bb_gain = bb_gain 
+        self.sample_rate = sample_rate
+        self.rf_gain = rf_gain
+        self.port = port
+        self.if_gain = if_gain
+        self.frequency = frequency
+        self.freq_correction = freq_correction
+        self.bb_gain = bb_gain
         self.bandwidth = bandwidth 
 
-        self.osmosdr_source_0 = osmosdr.source(
-            args="numchan=" + str(1) + " " + 'airspy'
-        )
+        self.osmosdr_source_0 = osmosdr.source(args='numchan=1 airspy')
         self.osmosdr_source_0.set_time_unknown_pps(osmosdr.time_spec_t())
         self.osmosdr_source_0.set_sample_rate(sample_rate)
         self.osmosdr_source_0.set_center_freq(frequency, 0)

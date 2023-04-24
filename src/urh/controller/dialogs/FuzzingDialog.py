@@ -44,7 +44,9 @@ class FuzzingDialog(QDialog):
         self.ui.tblFuzzingValues.resize_me()
 
         self.create_connects()
-        self.restoreGeometry(settings.read("{}/geometry".format(self.__class__.__name__), type=bytes))
+        self.restoreGeometry(
+            settings.read(f"{self.__class__.__name__}/geometry", type=bytes)
+        )
 
     @property
     def message(self):
@@ -63,7 +65,7 @@ class FuzzingDialog(QDialog):
         self.message.message_type[self.current_label_index] = cur_label
         cur_label.fuzz_values = [fv for fv in cur_label.fuzz_values if fv]  # Remove empty strings
 
-        if len(cur_label.fuzz_values) == 0:
+        if not cur_label.fuzz_values:
             cur_label.fuzz_values.append(self.message.plain_bits_str[cur_label.start:cur_label.end])
         return cur_label
 
@@ -142,7 +144,7 @@ class FuzzingDialog(QDialog):
         self.set_add_spinboxes_maximum_on_label_change()
 
     def closeEvent(self, event: QCloseEvent):
-        settings.write("{}/geometry".format(self.__class__.__name__), self.saveGeometry())
+        settings.write(f"{self.__class__.__name__}/geometry", self.saveGeometry())
         super().closeEvent(event)
 
     @pyqtSlot(int)
@@ -316,8 +318,7 @@ class FuzzingDialog(QDialog):
             for lbl in self.message.message_type:
                 seq = lbl.fuzz_values[:]
                 seen = set()
-                add_seen = seen.add
-                lbl.fuzz_values = [l for l in seq if not (l in seen or add_seen(l))]
+                lbl.fuzz_values = [l for l in seq if l not in seen and not seen.add(l)]
 
     @pyqtSlot()
     def set_current_label_name(self):

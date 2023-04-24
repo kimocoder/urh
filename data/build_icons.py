@@ -13,9 +13,9 @@ def get_python_files():
     code_dir = os.path.join(os.curdir, "..", "src")
     assert os.path.isdir(code_dir)
     for path, subdirs, files in os.walk(code_dir):
-        for name in files:
-            if name.endswith(".py"):
-                python_files.append(os.path.join(path, name))
+        python_files.extend(
+            os.path.join(path, name) for name in files if name.endswith(".py")
+        )
     return python_files
 
 
@@ -58,7 +58,7 @@ def copy_icons(icon_names: set):
 
         for size in sizes:
             f.write("\n")
-            f.write("[" + size + "]\n")
+            f.write(f"[{size}" + "]\n")
             f.write("Size=" + size[:size.index("x")] + "\n")
             f.write("\n")
 
@@ -73,7 +73,7 @@ def copy_icons(icon_names: set):
         size_dir = os.path.join(target_dir, size)
         for icon in os.listdir(size_dir):
             relpath = os.path.relpath(os.path.join(size_dir, icon), "/tmp")
-            ET.SubElement(res, "file", alias=size + "/" + icon).text = relpath
+            ET.SubElement(res, "file", alias=f"{size}/{icon}").text = relpath
 
     tree = ET.ElementTree(root)
     tree.write("/tmp/xtra_icons.qrc")

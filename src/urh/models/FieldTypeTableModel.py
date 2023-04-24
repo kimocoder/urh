@@ -35,7 +35,7 @@ class FieldTypeTableModel(QAbstractTableModel):
         if not index.isValid():
             return None
 
-        if role == Qt.DisplayRole or role == Qt.EditRole:
+        if role in [Qt.DisplayRole, Qt.EditRole]:
             i = index.row()
             j = index.column()
             fieldtype = self.field_types[i]
@@ -48,25 +48,26 @@ class FieldTypeTableModel(QAbstractTableModel):
                 return ProtocolLabel.DISPLAY_FORMATS[fieldtype.display_format_index]
 
     def setData(self, index: QModelIndex, value, role=None):
-        if role == Qt.EditRole:
-            i, j = index.row(), index.column()
-            fieldtype = self.field_types[i]
-            try:
-                if j == 0:
-                    present_captions = {ft.caption for ft in self.field_types}
-                    if value not in present_captions:
-                        fieldtype.caption = value
-                elif j == 1:
-                    try:
-                        fieldtype.function = FieldType.Function[value]
-                    except KeyError:
-                        return False
-                if j == 2:
-                    fieldtype.display_format_index = int(value)
-            except ValueError:
-                return False
+        if role != Qt.EditRole:
+            return
+        i, j = index.row(), index.column()
+        fieldtype = self.field_types[i]
+        try:
+            if j == 0:
+                present_captions = {ft.caption for ft in self.field_types}
+                if value not in present_captions:
+                    fieldtype.caption = value
+            elif j == 1:
+                try:
+                    fieldtype.function = FieldType.Function[value]
+                except KeyError:
+                    return False
+            elif j == 2:
+                fieldtype.display_format_index = int(value)
+        except ValueError:
+            return False
 
-            return True
+        return True
 
     def flags(self, index: QModelIndex):
         return Qt.ItemIsSelectable | Qt.ItemIsEnabled | Qt.ItemIsEditable

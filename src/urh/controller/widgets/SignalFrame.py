@@ -321,7 +321,7 @@ class SignalFrame(QFrame):
                 if power > 0:
                     power_str = Formatter.big_value_with_suffix(10 * np.log10(power), 2)
 
-            self.ui.labelRSSI.setText("{} dBm".format(power_str))
+            self.ui.labelRSSI.setText(f"{power_str} dBm")
 
         except Exception as e:
             logger.exception(e)
@@ -347,7 +347,7 @@ class SignalFrame(QFrame):
 
         if self.ui.gvSpectrogram.height_spectrogram and self.signal:
             bw = (num_samples / self.ui.gvSpectrogram.height_spectrogram) * self.signal.sample_rate
-            self.ui.lDuration.setText(Formatter.big_value_with_suffix(bw) + "Hz")
+            self.ui.lDuration.setText(f"{Formatter.big_value_with_suffix(bw)}Hz")
 
     def __set_duration(self):  # On Signal Sample Rate changed
         try:
@@ -456,13 +456,14 @@ class SignalFrame(QFrame):
 
     def export_demodulated(self):
         try:
-            initial_name = self.signal.name + "-demodulated.wav"
+            initial_name = f"{self.signal.name}-demodulated.wav"
         except Exception as e:
             logger.exception(e)
             initial_name = "demodulated.wav"
 
-        filename = FileOperator.ask_save_file_name(initial_name, caption="Export demodulated")
-        if filename:
+        if filename := FileOperator.ask_save_file_name(
+            initial_name, caption="Export demodulated"
+        ):
             try:
                 self.setCursor(Qt.WaitCursor)
                 data = self.signal.qad
@@ -723,9 +724,7 @@ class SignalFrame(QFrame):
 
     @pyqtSlot()
     def set_protocol_visibility(self):
-        checked = self.ui.chkBoxShowProtocol.isChecked()
-
-        if checked:
+        if checked := self.ui.chkBoxShowProtocol.isChecked():
             self.show_protocol()
             self.ui.cbProtoView.setEnabled(True)
             # Disabled because never used
@@ -896,7 +895,6 @@ class SignalFrame(QFrame):
         end_pos *= factor
 
         try:
-            include_last_pause = False
             s = text_edit.textCursor().selectionStart()
             e = text_edit.textCursor().selectionEnd()
             if s > e:
@@ -913,9 +911,7 @@ class SignalFrame(QFrame):
             elif selected_text.endswith(" \t"):
                 end_pos -= 2
 
-            if "[" in selected_text[last_newline:]:
-                include_last_pause = True
-
+            include_last_pause = "[" in selected_text[last_newline:]
             sample_pos, num_samples = self.proto_analyzer.get_samplepos_of_bitseq(start_message, start_pos, end_message,
                                                                                   end_pos, include_last_pause)
 
@@ -923,18 +919,17 @@ class SignalFrame(QFrame):
             return
 
         self.ui.gvSignal.blockSignals(True)
-        if sample_pos != -1:
-            if self.jump_sync and self.sync_protocol:
-                self.ui.gvSignal.centerOn(sample_pos, self.ui.gvSignal.y_center)
-                self.ui.gvSignal.set_horizontal_selection(sample_pos, num_samples)
-                if forward_selection:  # Forward Selection --> Center ROI to End of Selection
-                    self.ui.gvSignal.centerOn(sample_pos + num_samples, self.ui.gvSignal.y_center)
-                else:  # Backward Selection --> Center ROI to Start of Selection
-                    self.ui.gvSignal.centerOn(sample_pos, self.ui.gvSignal.y_center)
-            else:
-                self.ui.gvSignal.set_horizontal_selection(sample_pos, num_samples)
-        else:
+        if sample_pos == -1:
             self.ui.gvSignal.clear_horizontal_selection()
+        elif self.jump_sync and self.sync_protocol:
+            self.ui.gvSignal.centerOn(sample_pos, self.ui.gvSignal.y_center)
+            self.ui.gvSignal.set_horizontal_selection(sample_pos, num_samples)
+            if forward_selection:  # Forward Selection --> Center ROI to End of Selection
+                self.ui.gvSignal.centerOn(sample_pos + num_samples, self.ui.gvSignal.y_center)
+            else:  # Backward Selection --> Center ROI to Start of Selection
+                self.ui.gvSignal.centerOn(sample_pos, self.ui.gvSignal.y_center)
+        else:
+            self.ui.gvSignal.set_horizontal_selection(sample_pos, num_samples)
         self.ui.gvSignal.blockSignals(False)
 
         self.update_number_selected_samples()
@@ -1329,7 +1324,7 @@ class SignalFrame(QFrame):
     @pyqtSlot()
     def on_export_fta_wanted(self):
         try:
-            initial_name = self.signal.name + "-spectrogram.ft"
+            initial_name = f"{self.signal.name}-spectrogram.ft"
         except Exception as e:
             logger.exception(e)
             initial_name = "spectrogram.ft"

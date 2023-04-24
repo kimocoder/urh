@@ -40,7 +40,7 @@ class MessageBreakAction(QUndoCommand):
             return result
 
         zero_counter = 0
-        for i in range(0, len(message)):
+        for i in range(len(message)):
             if message[i] == "0":
                 zero_counter += 1
             else:

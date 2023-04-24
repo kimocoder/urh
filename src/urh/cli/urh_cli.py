@@ -83,7 +83,9 @@ def build_modulator_from_args(arguments: argparse.Namespace):
 
     n = 2 ** int(arguments.bits_per_symbol)
     if arguments.parameters is None or len(arguments.parameters) != n:
-        raise ValueError("You need to give {} parameters for {} bits per symbol".format(n, int(arguments.bits_per_symbol)))
+        raise ValueError(
+            f"You need to give {n} parameters for {int(arguments.bits_per_symbol)} bits per symbol"
+        )
 
     result = Modulator("CLI Modulator")
     result.carrier_freq_hz = float(arguments.carrier_frequency)
@@ -225,7 +227,7 @@ def modulate_messages(messages, modulator):
         buffer[pos:pos + len(modulated)] = modulated
         pos += len(modulated) + msg.pause
         cli_progress_bar(i + 1, len(messages), title="Modulating")
-    print("\nSuccessfully modulated {} messages".format(len(messages)))
+    print(f"\nSuccessfully modulated {len(messages)} messages")
     return buffer
 
 
@@ -241,7 +243,7 @@ def parse_project_file(file_path: str):
         tree = ET.parse(file_path)
         root = tree.getroot()
     except Exception as e:
-        logger.error("Could not read project file {}: {}".format(file_path, e))
+        logger.error(f"Could not read project file {file_path}: {e}")
         return result
 
     ProjectManager.read_device_conf_dict(root.find("device_conf"), target_dict=result)
@@ -283,12 +285,24 @@ def create_parser():
     group2 = parser.add_argument_group('Modulation/Demodulation settings',
                                        "Configure the Modulator/Demodulator. Not required in raw mode."
                                        "In case of RX there are additional demodulation options.")
-    group2.add_argument("-cf", "--carrier-frequency", type=float,
-                        help="Carrier frequency in Hertz (default: {})".format(DEFAULT_CARRIER_FREQUENCY))
-    group2.add_argument("-ca", "--carrier-amplitude", type=float,
-                        help="Carrier amplitude (default: {})".format(DEFAULT_CARRIER_AMPLITUDE))
-    group2.add_argument("-cp", "--carrier-phase", type=float,
-                        help="Carrier phase in degree (default: {})".format(DEFAULT_CARRIER_PHASE))
+    group2.add_argument(
+        "-cf",
+        "--carrier-frequency",
+        type=float,
+        help=f"Carrier frequency in Hertz (default: {DEFAULT_CARRIER_FREQUENCY})",
+    )
+    group2.add_argument(
+        "-ca",
+        "--carrier-amplitude",
+        type=float,
+        help=f"Carrier amplitude (default: {DEFAULT_CARRIER_AMPLITUDE})",
+    )
+    group2.add_argument(
+        "-cp",
+        "--carrier-phase",
+        type=float,
+        help=f"Carrier phase in degree (default: {DEFAULT_CARRIER_PHASE})",
+    )
     group2.add_argument("-mo", "--modulation-type", choices=MODULATIONS, metavar="MOD_TYPE", default="FSK",
                         help="Modulation type must be one of " + ", ".join(MODULATIONS) + " (default: %(default)s)")
     group2.add_argument("-bps", "--bits-per-symbol", type=int,
@@ -299,23 +313,43 @@ def create_parser():
     group2.add_argument("-p0", "--parameter-zero", help=argparse.SUPPRESS)
     group2.add_argument("-p1", "--parameter-one", help=argparse.SUPPRESS)
 
-    group2.add_argument("-sps", "--samples-per-symbol", type=int,
-                        help="Length of a symbol in samples (default: {}).".format(DEFAULT_SAMPLES_PER_SYMBOL))
-    group2.add_argument("-bl", "--bit-length", type=int,
-                        help="Same as samples per symbol, just there for legacy support (default: {}).".format(DEFAULT_SAMPLES_PER_SYMBOL))
+    group2.add_argument(
+        "-sps",
+        "--samples-per-symbol",
+        type=int,
+        help=f"Length of a symbol in samples (default: {DEFAULT_SAMPLES_PER_SYMBOL}).",
+    )
+    group2.add_argument(
+        "-bl",
+        "--bit-length",
+        type=int,
+        help=f"Same as samples per symbol, just there for legacy support (default: {DEFAULT_SAMPLES_PER_SYMBOL}).",
+    )
 
-    group2.add_argument("-n", "--noise", type=float,
-                        help="Noise threshold (default: {}). Used for RX only.".format(DEFAULT_NOISE))
-    group2.add_argument("-c", "--center", type=float,
-                        help="Center between symbols for demodulation (default: {}). "
-                             "Used for RX only.".format(DEFAULT_CENTER))
-    group2.add_argument("-cs", "--center-spacing", type=float,
-                        help="Center spacing between symbols for demodulation (default: {}). "
-                             "Value has only effect for modulations with more than 1 bit per symbol. "
-                             "Used only for RX.".format(DEFAULT_CENTER_SPACING))
-    group2.add_argument("-t", "--tolerance", type=float,
-                        help="Tolerance for demodulation in samples (default: {}). "
-                             "Used for RX only.".format(DEFAULT_TOLERANCE))
+    group2.add_argument(
+        "-n",
+        "--noise",
+        type=float,
+        help=f"Noise threshold (default: {DEFAULT_NOISE}). Used for RX only.",
+    )
+    group2.add_argument(
+        "-c",
+        "--center",
+        type=float,
+        help=f"Center between symbols for demodulation (default: {DEFAULT_CENTER}). Used for RX only.",
+    )
+    group2.add_argument(
+        "-cs",
+        "--center-spacing",
+        type=float,
+        help=f"Center spacing between symbols for demodulation (default: {DEFAULT_CENTER_SPACING}). Value has only effect for modulations with more than 1 bit per symbol. Used only for RX.",
+    )
+    group2.add_argument(
+        "-t",
+        "--tolerance",
+        type=float,
+        help=f"Tolerance for demodulation in samples (default: {DEFAULT_TOLERANCE}). Used for RX only.",
+    )
 
     group3 = parser.add_argument_group('Data configuration', "Configure which data to send or where to receive it.")
     group3.add_argument("--hex", action='store_true', help="Give messages as hex instead of bits")
@@ -389,9 +423,16 @@ def main():
 
     args.bandwidth = get_val(args.bandwidth, project_params, "bandwidth", None)
     rx_tx_prefix = "rx_" if args.receive else "tx_"
-    args.gain = get_val(args.gain, project_params, rx_tx_prefix + "gain", None)
-    args.if_gain = get_val(args.if_gain, project_params, rx_tx_prefix + "if_gain", None)
-    args.baseband_gain = get_val(args.baseband_gain, project_params, rx_tx_prefix + "baseband_gain", None)
+    args.gain = get_val(args.gain, project_params, f"{rx_tx_prefix}gain", None)
+    args.if_gain = get_val(
+        args.if_gain, project_params, f"{rx_tx_prefix}if_gain", None
+    )
+    args.baseband_gain = get_val(
+        args.baseband_gain,
+        project_params,
+        f"{rx_tx_prefix}baseband_gain",
+        None,
+    )
 
     if args.modulation_type is None:
         try:
@@ -480,7 +521,7 @@ def main():
             print("Receiving forever...")
 
         f = None if args.filename is None else open(args.filename, "w")
-        kwargs = dict() if f is None else {"file": f}
+        kwargs = {} if f is None else {"file": f}
 
         dev = receiver.rcv_device if hasattr(receiver, "rcv_device") else receiver
 

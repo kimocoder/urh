@@ -34,7 +34,7 @@ def get_most_frequent_value(values: list):
     :param values:
     :return:
     """
-    if len(values) == 0:
+    if not values:
         return None
 
     most_common = Counter(values).most_common()
@@ -120,7 +120,7 @@ def merge_message_segments_for_ook(segments: list):
     large_pause_indices = np.nonzero(pauses >= 8 * min_pulse_length)[0]
 
     # Merge Pulse Lengths between long pauses
-    for i in range(0, len(large_pause_indices) + 1):
+    for i in range(len(large_pause_indices) + 1):
         if i == 0:
             start, end = 0, large_pause_indices[i] + 1 if len(large_pause_indices) >= 1 else len(segments)
         elif i == len(large_pause_indices):
@@ -166,24 +166,25 @@ def detect_modulation(data: np.ndarray, wavelet_scale=4, median_filter_order=11)
         # ASK or QAM
         # todo: consider qam, compare filtered mag and filtered norm mag
         return "ASK"
-    else:
-        # FSK or PSK
-        if var_mag > 10 * var_filtered_mag:
-            return "PSK"
-        else:
+    if var_mag > 10 * var_filtered_mag:
+        return "PSK"
             # Now we either have a FSK signal or we a have OOK single pulse
             # If we have an FSK, there should be at least two peaks in FFT
-            fft = np.fft.fft(data[0:2 ** int(np.log2(len(data)))])
-            fft = np.abs(np.fft.fftshift(fft))
-            ten_greatest_indices = np.argsort(fft)[::-1][0:10]
-            greatest_index = ten_greatest_indices[0]
-            min_distance = 10
-            min_freq = 100  # 100 seems to be magnitude of noise frequency
+    fft = np.fft.fft(data[:2 ** int(np.log2(len(data)))])
+    fft = np.abs(np.fft.fftshift(fft))
+    ten_greatest_indices = np.argsort(fft)[::-1][:10]
+    greatest_index = ten_greatest_indices[0]
+    min_distance = 10
+    min_freq = 100  # 100 seems to be magnitude of noise frequency
 
-            if any(abs(i - greatest_index) >= min_distance and fft[i] >= min_freq for i in ten_greatest_indices):
-                return "FSK"
-            else:
-                return "OOK"
+    return (
+        "FSK"
+        if any(
+            abs(i - greatest_index) >= min_distance and fft[i] >= min_freq
+            for i in ten_greatest_indices
+        )
+        else "OOK"
+    )
 
 
 def detect_modulation_for_messages(signal: IQArray, message_indices: list) -> str:
@@ -191,15 +192,16 @@ def detect_modulation_for_messages(signal: IQArray, message_indices: list) -> st
 
     modulations_for_messages = []
     complex = signal.as_complex64()
-    for start, end in message_indices[0:max_messages]:
+    for start, end in message_indices[:max_messages]:
         mod = detect_modulation(complex[start:end])
         if mod is not None:
             modulations_for_messages.append(mod)
 
-    if len(modulations_for_messages) == 0:
-        return None
-
-    return most_common(modulations_for_messages)
+    return (
+        most_common(modulations_for_messages)
+        if modulations_for_messages
+        else None
+    )
 
 
 def detect_center(rectangular_signal: np.ndarray, max_size=None):
@@ -210,7 +212,7 @@ def detect_center(rectangular_signal: np.ndarray, max_size=None):
     rect = rect[int(0.05*len(rect)):int(0.95*len(rect))]
 
     if max_size is not None and len(rect) > max_size:
-        rect = rect[0:max_size]
+        rect = rect[:max_size]
 
     hist_min, hist_max = util.minmax(rect)
 
@@ -230,10 +232,7 @@ def detect_center(rectangular_signal: np.ndarray, max_size=None):
     window_size = max(2, int(0.05*len(y)) + 1)
 
     def get_elem(arr, index: int, default):
-        if 0 <= index < len(arr):
-            return arr[index]
-        else:
-            return default
+        return arr[index] if 0 <= index < len(arr) else default
 
     for index in np.argsort(y)[::-1]:
         # check if we have a local maximum in histogram, if yes, append the value
@@ -245,11 +244,7 @@ def detect_center(rectangular_signal: np.ndarray, max_size=None):
         if len(most_common_levels) == num_values:
             break
 
-    if len(most_common_levels) == 0:
-        return None
-
-    # todo if num values greater two return more centers
-    return np.mean(most_common_levels)
+    return np.mean(most_common_levels) if most_common_levels else None
 
 
 def estimate_tolerance_from_plateau_lengths(plateau_lengths, relative_max=0.05) -> int:
@@ -308,10 +303,7 @@ def get_tolerant_greatest_common_divisor(numbers):
     gcd = math.gcd if sys.version_info >= (3, 5) else fractions.gcd
 
     gcds = [gcd(x, y) for x, y in itertools.combinations(numbers, 2) if gcd(x, y) != 1]
-    if len(gcds) == 0:
-        return 1
-
-    return get_most_frequent_value(gcds)
+    return get_most_frequent_value(gcds) if gcds else 1
 
 
 def get_bit_length_from_plateau_lengths(merged_plateau_lengths) -> int:
@@ -326,19 +318,18 @@ def get_bit_length_from_plateau_lengths(merged_plateau_lengths) -> int:
 
     if len(histogram) == 0:
         return 0
-    else:
-        # Can't return simply argmax, since this could be a multiple of result (e.g. 2 1s are transmitted often)
-        sorted_indices = np.argsort(histogram)[::-1]
-        max_count = histogram[sorted_indices[0]]
-        result = sorted_indices[0]
+    # Can't return simply argmax, since this could be a multiple of result (e.g. 2 1s are transmitted often)
+    sorted_indices = np.argsort(histogram)[::-1]
+    max_count = histogram[sorted_indices[0]]
+    result = sorted_indices[0]
 
-        for i in range(1, len(sorted_indices)):
-            if histogram[sorted_indices[i]] < 0.25 * max_count:
-                break
-            if sorted_indices[i] <= 0.5 * result:
-                result = sorted_indices[i]
+    for i in range(1, len(sorted_indices)):
+        if histogram[sorted_indices[i]] < 0.25 * max_count:
+            break
+        if sorted_indices[i] <= 0.5 * result:
+            result = sorted_indices[i]
 
-        return int(result)
+    return int(result)
 
 
 def estimate(iq_array: IQArray, noise: float = None, modulation: str = None) -> dict:
@@ -360,7 +351,7 @@ def estimate(iq_array: IQArray, noise: float = None, modulation: str = None) -> 
     if modulation == "OOK":
         message_indices = merge_message_segments_for_ook(message_indices)
 
-    if modulation == "OOK" or modulation == "ASK":
+    if modulation in ["OOK", "ASK"]:
         data = signal_functions.afp_demod(iq_array.data, noise, "ASK", 2)
     elif modulation == "FSK":
         data = signal_functions.afp_demod(iq_array.data, noise, "FSK", 2)
@@ -400,7 +391,7 @@ def estimate(iq_array: IQArray, noise: float = None, modulation: str = None) -> 
             bit_lengths.append(bit_length)
 
     # Since we cannot have different centers per message (yet) we need to combine them to return a common center
-    if modulation == "OOK" or modulation == "ASK":
+    if modulation in ["OOK", "ASK"]:
         # for ask modulations the center tends to be the minimum of all found centers
         center = min_without_outliers(np.array(centers), z=2)
         if center is None:
@@ -423,12 +414,10 @@ def estimate(iq_array: IQArray, noise: float = None, modulation: str = None) -> 
         # no tolerances found, default to 5% of bit length
         tolerance = max(1, int(0.05 * bit_length))
 
-    result = {
+    return {
         "modulation_type": "ASK" if modulation == "OOK" else modulation,
         "bit_length": bit_length,
         "center": center,
         "tolerance": int(tolerance),
-        "noise": noise
+        "noise": noise,
     }
-
-    return result

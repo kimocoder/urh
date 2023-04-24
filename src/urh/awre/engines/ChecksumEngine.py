@@ -26,7 +26,7 @@ class ChecksumEngine(Engine):
             self.already_labeled_cols = {e for rng in already_labeled for e in range(*rng)}
 
     def find(self):
-        result = list()
+        result = []
         bitvectors_by_n_gram_length = defaultdict(list)
         for i, bitvector in enumerate(self.bitvectors):
             bin_num = int(math.ceil(len(bitvector) / self.n_gram_length))

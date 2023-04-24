@@ -23,17 +23,15 @@ class HackRF(Device):
     @classmethod
     def get_device_list(cls):
         result = hackrf.get_device_list()
-        if result is None:
-            return []
-        return result
+        return [] if result is None else result
 
     @classmethod
     def setup_device(cls, ctrl_connection: Connection, device_identifier):
         ret = hackrf.setup(device_identifier)
         msg = "SETUP"
         if device_identifier:
-            msg += " ({})".format(device_identifier)
-        msg += ": " + str(ret)
+            msg += f" ({device_identifier})"
+        msg += f": {str(ret)}"
         ctrl_connection.send(msg)
 
         return ret == 0
@@ -42,23 +40,23 @@ class HackRF(Device):
     def shutdown_device(cls, ctrl_conn: Connection, is_tx: bool):
         if is_tx:
             result = hackrf.stop_tx_mode()
-            ctrl_conn.send("STOP TX MODE:" + str(result))
+            ctrl_conn.send(f"STOP TX MODE:{str(result)}")
         else:
             result = hackrf.stop_rx_mode()
-            ctrl_conn.send("STOP RX MODE:" + str(result))
+            ctrl_conn.send(f"STOP RX MODE:{str(result)}")
 
         result = hackrf.close()
-        ctrl_conn.send("CLOSE:" + str(result))
+        ctrl_conn.send(f"CLOSE:{str(result)}")
 
         result = hackrf.exit()
-        ctrl_conn.send("EXIT:" + str(result))
+        ctrl_conn.send(f"EXIT:{str(result)}")
 
         return True
 
     @classmethod
     def enter_async_receive_mode(cls, data_connection: Connection, ctrl_connection: Connection):
         ret = hackrf.start_rx_mode(data_connection.send_bytes)
-        ctrl_connection.send("Start RX MODE:" + str(ret))
+        ctrl_connection.send(f"Start RX MODE:{str(ret)}")
         return ret
 
     @classmethod

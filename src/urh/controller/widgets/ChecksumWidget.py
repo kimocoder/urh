@@ -114,8 +114,8 @@ class ChecksumWidget(QWidget):
         self.ui.tableViewDataRanges.setModel(self.data_range_table_model)
         self.ui.tableViewDataRanges.setEditTriggers(QAbstractItemView.AllEditTriggers)
         self.display_crc_data_ranges_in_table()
-        self.ui.comboBoxCRCFunction.addItems([crc_name for crc_name in GenericCRC.DEFAULT_POLYNOMIALS])
-        self.ui.comboBoxCRCFunction.addItems([special_crc_name for special_crc_name in self.SPECIAL_CRCS])
+        self.ui.comboBoxCRCFunction.addItems(list(GenericCRC.DEFAULT_POLYNOMIALS))
+        self.ui.comboBoxCRCFunction.addItems(list(self.SPECIAL_CRCS))
         self.ui.lineEditCRCPolynomial.setValidator(QRegExpValidator(QRegExp("[0-9,a-f]*")))
         self.ui.comboBoxCategory.clear()
         for _, member in self.checksum_label.Category.__members__.items():
@@ -208,13 +208,9 @@ class ChecksumWidget(QWidget):
 
     def __set_crc_info_label(self):
         crc = self.checksum_label.checksum  # type: GenericCRC
-        self.ui.label_crc_info.setText("<b>CRC Summary:</b><ul>"
-                                       "<li>Polynomial = {}<>"
-                                       "<li>Length of checksum = {} bit</li>"
-                                       "<li>start value length = {} bit</li>"
-                                       "<li>final XOR length = {} bit</li>"
-                                       "</ul>".format(crc.polynomial_to_html, crc.poly_order-1,
-                                                                         len(crc.start_value), len(crc.final_xor)))
+        self.ui.label_crc_info.setText(
+            f"<b>CRC Summary:</b><ul><li>Polynomial = {crc.polynomial_to_html}<><li>Length of checksum = {crc.poly_order - 1} bit</li><li>start value length = {len(crc.start_value)} bit</li><li>final XOR length = {len(crc.final_xor)} bit</li></ul>"
+        )
 
     def __ensure_same_length(self):
         for dependant_line_edit in [self.ui.lineEditStartValue, self.ui.lineEditFinalXOR]:  # type: QLineEdit
@@ -284,7 +280,7 @@ class ChecksumWidget(QWidget):
         start_value = util.hex2bit(self.ui.lineEditStartValue.text())
         # pad with zeros at front
         start_value = array.array("B", [0]*(crc.poly_order - 1 - len(start_value))) + start_value
-        crc.start_value = start_value[0:crc.poly_order-1]
+        crc.start_value = start_value[:crc.poly_order-1]
         self.ui.lineEditStartValue.setText(util.bit2hex(crc.start_value))
         self.__set_crc_info_label()
         self.__set_crc_function_index()
@@ -294,7 +290,7 @@ class ChecksumWidget(QWidget):
         crc = self.checksum_label.checksum
         final_xor = util.hex2bit(self.ui.lineEditFinalXOR.text())
         final_xor = array.array("B", [0] * (crc.poly_order - 1 - len(final_xor))) + final_xor
-        crc.final_xor = final_xor[0:crc.poly_order-1]
+        crc.final_xor = final_xor[:crc.poly_order-1]
         self.ui.lineEditFinalXOR.setText(util.bit2hex(crc.final_xor))
         self.__set_crc_info_label()
         self.__set_crc_function_index()

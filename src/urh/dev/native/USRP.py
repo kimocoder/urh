@@ -34,9 +34,9 @@ class USRP(Device):
         ret = usrp.open(device_identifier)
 
         if device_identifier:
-            ctrl_connection.send("OPEN ({}):{}".format(device_identifier, ret))
+            ctrl_connection.send(f"OPEN ({device_identifier}):{ret}")
         else:
-            ctrl_connection.send("OPEN:" + str(ret))
+            ctrl_connection.send(f"OPEN:{str(ret)}")
 
         success = ret == 0
         if success:
@@ -51,8 +51,9 @@ class USRP(Device):
         usrp.set_tx(is_tx)
         success = super().init_device(ctrl_connection, is_tx, parameters)
         if success:
-            ctrl_connection.send("Current antenna is {} (possible antennas: {})".format(usrp.get_antenna(),
-                                                                                        ", ".join(usrp.get_antennas())))
+            ctrl_connection.send(
+                f'Current antenna is {usrp.get_antenna()} (possible antennas: {", ".join(usrp.get_antennas())})'
+            )
         return success
 
     @classmethod
@@ -60,7 +61,7 @@ class USRP(Device):
         usrp.stop_stream()
         usrp.destroy_stream()
         ret = usrp.close()
-        ctrl_connection.send("CLOSE:" + str(ret))
+        ctrl_connection.send(f"CLOSE:{str(ret)}")
         return True
 
     @classmethod

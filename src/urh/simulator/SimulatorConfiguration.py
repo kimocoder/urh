@@ -88,11 +88,11 @@ class SimulatorConfiguration(QObject):
             name = "item" + index.replace(".", "_") + suffix
 
             if isinstance(item, SimulatorCounterAction):
-                self.item_dict[name + ".counter_value"] = item
+                self.item_dict[f"{name}.counter_value"] = item
             else:
                 self.item_dict[name] = item
                 if isinstance(item, SimulatorTriggerCommandAction):
-                    self.item_dict[name + ".rc"] = item
+                    self.item_dict[f"{name}.rc"] = item
 
         self.item_dict_updated.emit()
 
@@ -162,12 +162,12 @@ class SimulatorConfiguration(QObject):
                   type: FieldType = None, parent_item: SimulatorMessage = None):
         assert isinstance(parent_item, SimulatorMessage)
 
-        name = "" if not name else name
+        name = name if name else ""
         used_colors = [p.color_index for p in parent_item.message_type]
         avail_colors = [i for i, _ in enumerate(settings.LABEL_COLORS) if i not in used_colors]
 
         if color_index is None:
-            if len(avail_colors) > 0:
+            if avail_colors:
                 color_index = avail_colors[0]
             else:
                 color_index = random.randint(0, len(settings.LABEL_COLORS) - 1)
@@ -182,12 +182,14 @@ class SimulatorConfiguration(QObject):
 
     def update_active_participants(self):
         messages = self.get_all_messages()
-        active_participants = []
-
-        for part in self.project_manager.participants:
-            if any(msg.participant == part or msg.destination == part for msg in messages):
-                active_participants.append(part)
-
+        active_participants = [
+            part
+            for part in self.project_manager.participants
+            if any(
+                msg.participant == part or msg.destination == part
+                for msg in messages
+            )
+        ]
         self.__active_participants = active_participants
         self.active_participants_updated.emit()
 
@@ -228,34 +230,28 @@ class SimulatorConfiguration(QObject):
 
     def load_from_xml(self, xml_tag: ET.Element, message_types):
         assert xml_tag.tag == "simulator_config"
-        items = []
-
-        modulators_tag = xml_tag.find("modulators")
-        if modulators_tag:
+        if modulators_tag := xml_tag.find("modulators"):
             self.project_manager.modulators = Modulator.modulators_from_xml_tag(modulators_tag)
 
-        participants_tag = xml_tag.find("participants")
-        if participants_tag:
+        if participants_tag := xml_tag.find("participants"):
             for participant in Participant.read_participants_from_xml_tag(participants_tag):
                 if participant not in self.project_manager.participants:
                     self.project_manager.participants.append(participant)
             self.participants_changed.emit()
 
-        decodings_tag = xml_tag.find("decodings")
-        if decodings_tag:
+        if decodings_tag := xml_tag.find("decodings"):
             self.project_manager.decodings = Encoding.read_decoders_from_xml_tag(decodings_tag)
 
-        rx_config_tag = xml_tag.find("simulator_rx_conf")
-        if rx_config_tag:
+        if rx_config_tag := xml_tag.find("simulator_rx_conf"):
             ProjectManager.read_device_conf_dict(rx_config_tag, self.project_manager.simulator_rx_conf)
 
-        tx_config_tag = xml_tag.find("simulator_tx_conf")
-        if tx_config_tag:
+        if tx_config_tag := xml_tag.find("simulator_tx_conf"):
             ProjectManager.read_device_conf_dict(tx_config_tag, self.project_manager.simulator_tx_conf)
 
-        for child_tag in xml_tag.find("items"):
-            items.append(self.load_item_from_xml(child_tag, message_types))
-
+        items = [
+            self.load_item_from_xml(child_tag, message_types)
+            for child_tag in xml_tag.find("items")
+        ]
         self.add_items(items, pos=0, parent_item=None)
 
     def load_item_from_xml(self, xml_tag: ET.Element, message_types) -> SimulatorItem:
@@ -279,7 +275,7 @@ class SimulatorConfiguration(QObject):
         elif xml_tag.tag in ("message", "label", "checksum_label"):
             return None
         else:
-            raise ValueError("Unknown simulator item tag: {}".format(xml_tag.tag))
+            raise ValueError(f"Unknown simulator item tag: {xml_tag.tag}")
 
         for child_tag in xml_tag:
             child = self.load_item_from_xml(child_tag, message_types)

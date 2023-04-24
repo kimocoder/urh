@@ -123,12 +123,14 @@ class Modulator(object):
 
     @property
     def parameters_string(self) -> str:
-        if self.is_amplitude_based:
+        if (
+            self.is_amplitude_based
+            or not self.is_frequency_based
+            and self.is_phase_based
+        ):
             return "/".join(map(str, map(int, self.parameters)))
         elif self.is_frequency_based:
             return "/".join(map(Formatter.big_value_with_suffix, self.parameters))
-        elif self.is_phase_based:
-            return "/".join(map(str, map(int, self.parameters)))
         else:
             raise ValueError("")
 
@@ -149,7 +151,7 @@ class Modulator(object):
 
     @display_bits.setter
     def display_bits(self, value: str):
-        self.data = [True if bit == "1" else False for bit in value]
+        self.data = [bit == "1" for bit in value]
 
     @property
     def carrier_frequency_str(self):
@@ -238,9 +240,10 @@ class Modulator(object):
         if self.is_amplitude_based:
             parameters = np.linspace(0, 100, self.modulation_order, dtype=np.float32)
         elif self.is_frequency_based:
-            parameters = []
-            for i in range(self.modulation_order):
-                parameters.append((i + 1) * self.carrier_freq_hz / self.modulation_order)
+            parameters = [
+                (i + 1) * self.carrier_freq_hz / self.modulation_order
+                for i in range(self.modulation_order)
+            ]
         elif self.is_phase_based:
             step = 360 / self.modulation_order
             parameters = np.arange(step / 2, 360, step) - 180
@@ -253,10 +256,7 @@ class Modulator(object):
 
     @staticmethod
     def __get_gray_code_indices(n: int):
-        result = []
-        for i in range(0, n):
-            result.append(i ^ (i >> 1))
-        return result
+        return [i ^ (i >> 1) for i in range(n)]
 
     def to_xml(self, index: int) -> ET.Element:
         root = ET.Element("modulator")
@@ -292,9 +292,9 @@ class Modulator(object):
         for attrib, value in sorted(tag.attrib.items()):
             if attrib == "index":
                 continue
-            elif attrib == "name" or attrib == "modulation_type":
+            elif attrib in ["name", "modulation_type"]:
                 setattr(result, attrib, str(value))
-            elif attrib == "samples_per_bit" or attrib == "samples_per_symbol":
+            elif attrib in ["samples_per_bit", "samples_per_symbol"]:
                 # samples_per_bit as legacy support for older project files
                 result.samples_per_symbol = Formatter.str2val(value, int, 100)
             elif attrib == "sample_rate":
@@ -332,10 +332,7 @@ class Modulator(object):
         if xml_tag is None:
             return []
 
-        result = []
-        for mod_tag in xml_tag.iter("modulator"):
-            result.append(Modulator.from_xml(mod_tag))
-        return result
+        return [Modulator.from_xml(mod_tag) for mod_tag in xml_tag.iter("modulator")]
 
     @staticmethod
     def get_value_with_suffix(value, unit=""):

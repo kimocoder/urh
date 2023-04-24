@@ -117,16 +117,19 @@ class LabelValueTableModel(QAbstractTableModel):
         elif role == Qt.CheckStateRole and j == 0:
             return lbl.show
         elif role == Qt.BackgroundColorRole:
-            if isinstance(lbl, ChecksumLabel) and j == 4 and self.message is not None:
-                start, end = self.message.get_label_range(lbl, 0, True)
-                if calculated_crc == self.message.decoded_bits[start:end]:
-                    return settings.BG_COLOR_CORRECT
-                else:
-                    return settings.BG_COLOR_WRONG
-
-            else:
+            if (
+                not isinstance(lbl, ChecksumLabel)
+                or j != 4
+                or self.message is None
+            ):
                 return None
 
+            start, end = self.message.get_label_range(lbl, 0, True)
+            return (
+                settings.BG_COLOR_CORRECT
+                if calculated_crc == self.message.decoded_bits[start:end]
+                else settings.BG_COLOR_WRONG
+            )
         elif role == Qt.ToolTipRole:
             if j == 2:
                 return self.tr("Choose display type for the value of the label:"

@@ -64,9 +64,9 @@ class LengthEngine(Engine):
             if count < 2:
                 continue
 
-            for length in common_ranges_by_length:
+            for value in common_ranges_by_length.values():
                 try:
-                    common_ranges_by_length[length].remove(rng)
+                    value.remove(rng)
                 except ValueError:
                     pass
 
@@ -80,20 +80,15 @@ class LengthEngine(Engine):
         :return:
         """
 
-        # The window length must be smaller than common range's length
-        # and is something like 8 in case of on 8 bit integer.
-        # We make this generic so e.g. 4 bit integers are supported as well
-        if n_gram_length == 8:
-            window_lengths = [8, 16, 32, 64]
-        else:
-            window_lengths = [n_gram_length * i for i in range(1, 5)]
-
-        scored_ranges = dict()
-        for length in common_ranges_by_length:
-            scored_ranges[length] = dict()
-            for window_length in window_lengths:
-                scored_ranges[length][window_length] = []
-
+        window_lengths = (
+            [8, 16, 32, 64]
+            if n_gram_length == 8
+            else [n_gram_length * i for i in range(1, 5)]
+        )
+        scored_ranges = {
+            length: {window_length: [] for window_length in window_lengths}
+            for length in common_ranges_by_length
+        }
         byteorders = ["big", "little"] if n_gram_length == 8 else ["big"]
         for window_length in window_lengths:
             for length, common_ranges in common_ranges_by_length.items():
@@ -126,7 +121,7 @@ class LengthEngine(Engine):
 
         # Set for every window length the highest scored range as candidate
         possible_window_lengths = defaultdict(int)
-        for length, ranges_by_window_length in scored_ranges.items():
+        for ranges_by_window_length in scored_ranges.values():
             for window_length, ranges in ranges_by_window_length.items():
                 try:
                     ranges_by_window_length[window_length] = max(filter(lambda x: x.score >= minimum_score, ranges),
@@ -139,9 +134,9 @@ class LengthEngine(Engine):
             # Choose window length -> window length that has a result most often and choose greater on tie
             chosen_window_length = max(possible_window_lengths, key=lambda x: (possible_window_lengths[x], x))
         except ValueError:
-            return dict()
+            return {}
 
-        high_scores_by_length = dict()
+        high_scores_by_length = {}
 
         # Choose all ranges with highest score per cluster if score surpasses the minimum score
         for length, ranges_by_window_length in scored_ranges.items():
@@ -178,10 +173,9 @@ class LengthEngine(Engine):
     @staticmethod
     def score_bits(bits: np.ndarray, target_length: int, position: int, byteorder="big"):
         value = util.bit_array_to_number(bits, len(bits))
-        if byteorder == "little":
-            if len(bits) > 8 and len(bits) % 8 == 0:
-                n = len(bits) // 8
-                value = int.from_bytes(value.to_bytes(n, byteorder="big"), byteorder="little", signed=False)
+        if byteorder == "little" and len(bits) > 8 and len(bits) % 8 == 0:
+            n = len(bits) // 8
+            value = int.from_bytes(value.to_bytes(n, byteorder="big"), byteorder="little", signed=False)
 
         # Length field should be at front, so we give lower scores for large starts
         f = (1 / (1 + 0.25 * position))

@@ -22,11 +22,10 @@ class ParticipantLegendListModel(QAbstractListModel):
         if role == Qt.DisplayRole:
             if row == 0:
                 return "not assigned"
-            else:
-                try:
-                    return str(self.participants[row-1])
-                except IndexError:
-                    return None
+            try:
+                return str(self.participants[row-1])
+            except IndexError:
+                return None
         elif role == Qt.BackgroundColorRole:
             if row > 0:
                 try:

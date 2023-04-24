@@ -107,13 +107,11 @@ class TableModel(QAbstractTableModel):
             elif role == Qt.BackgroundColorRole:
                 return self.vertical_header_colors[section]
             elif role == Qt.TextColorRole:
-                color = self.vertical_header_colors[section]
-                if color:
-                    red, green, blue = color.red(), color.green(), color.blue()
-                    return QColor("black") if (red * 0.299 + green * 0.587 + blue * 0.114) > 186 else QColor("white")
-                else:
+                if not (color := self.vertical_header_colors[section]):
                     return None
 
+                red, green, blue = color.red(), color.green(), color.blue()
+                return QColor("black") if (red * 0.299 + green * 0.587 + blue * 0.114) > 186 else QColor("white")
         return super().headerData(section, orientation, role)
 
     def update(self):
@@ -127,22 +125,23 @@ class TableModel(QAbstractTableModel):
                     self.display_data = [msg.decoded_hex_array for msg in self.protocol.messages]
                 elif self.proto_view == 2:
                     self.display_data = [msg.decoded_ascii_array for msg in self.protocol.messages]
+            elif self.proto_view == 0:
+                self.display_data = [msg.plain_bits for msg in self.protocol.messages]
+            elif self.proto_view == 1:
+                self.display_data = [msg.plain_hex_array for msg in self.protocol.messages]
             else:
-                # Generator Model
-                if self.proto_view == 0:
-                    self.display_data = [msg.plain_bits for msg in self.protocol.messages]
-                elif self.proto_view == 1:
-                    self.display_data = [msg.plain_hex_array for msg in self.protocol.messages]
-                else:
-                    self.display_data = [msg.plain_ascii_array for msg in self.protocol.messages]
+                self.display_data = [msg.plain_ascii_array for msg in self.protocol.messages]
 
             visible_messages = [msg for i, msg in enumerate(self.display_data) if i not in self.hidden_rows]
-            if len(visible_messages) == 0:
-                self.col_count = 0
-            else:
-                self.col_count = max(len(msg) + self.get_alignment_offset_at(i)
-                                     for i, msg in enumerate(self.display_data) if i not in self.hidden_rows)
-
+            self.col_count = (
+                max(
+                    len(msg) + self.get_alignment_offset_at(i)
+                    for i, msg in enumerate(self.display_data)
+                    if i not in self.hidden_rows
+                )
+                if visible_messages
+                else 0
+            )
             if self._refindex >= 0:
                 self._diffs = self.find_differences(self._refindex)
             else:
@@ -274,7 +273,7 @@ class TableModel(QAbstractTableModel):
             bits = msg.decoded_bits if self.decode else msg.plain_bits
             color = "green" if bits[start:end] == calculated_crc else "red"
             expected = util.convert_bits_to_string(calculated_crc, self.proto_view)
-            result += '<br><font color="{}">Expected <b>{}</b></font>'.format(color, expected)
+            result += f'<br><font color="{color}">Expected <b>{expected}</b></font>'
 
         return result
 
@@ -379,11 +378,15 @@ class TableModel(QAbstractTableModel):
         try:
             msg = self.protocol.messages[row]
         except IndexError:
-            logger.warning("{} is out of range for generator protocol".format(row))
+            logger.warning(f"{row} is out of range for generator protocol")
             return -1
 
-        for i, lbl in enumerate(msg.message_type):
-            if column in range(*msg.get_label_range(lbl, self.proto_view, False)):
-                return i
-
-        return -1
+        return next(
+            (
+                i
+                for i, lbl in enumerate(msg.message_type)
+                if column
+                in range(*msg.get_label_range(lbl, self.proto_view, False))
+            ),
+            -1,
+        )

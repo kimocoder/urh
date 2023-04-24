@@ -90,7 +90,9 @@ class DecoderDialog(QDialog):
 
         # Connects
         self.create_connects()
-        self.restoreGeometry(settings.read("{}/geometry".format(self.__class__.__name__), type=bytes))
+        self.restoreGeometry(
+            settings.read(f"{self.__class__.__name__}/geometry", type=bytes)
+        )
 
     def create_connects(self):
         self.ui.inpt.textChanged.connect(self.decoder_update)
@@ -133,7 +135,7 @@ class DecoderDialog(QDialog):
         self.ui.morse_wait.valueChanged.connect(self.handle_morse_changed)
 
     def closeEvent(self, event: QCloseEvent):
-        settings.write("{}/geometry".format(self.__class__.__name__), self.saveGeometry())
+        settings.write(f"{self.__class__.__name__}/geometry", self.saveGeometry())
         super().closeEvent(event)
 
     def choose_decoder(self):
@@ -154,11 +156,8 @@ class DecoderDialog(QDialog):
         else:
             prefix = os.path.realpath(os.path.join(settings.get_qt_settings_filename(), ".."))
             with open(os.path.join(prefix, settings.DECODINGS_FILE), "w") as f:
-                for i in range(0, self.ui.combobox_decodings.count()):
-                    str = ""
-                    for j in self.decodings[i].get_chain():
-                        str += repr(j) + ", "
-                    str += "\n"
+                for i in range(self.ui.combobox_decodings.count()):
+                    str = "".join(f"{repr(j)}, " for j in self.decodings[i].get_chain()) + "\n"
                     f.write(str)
 
     def saveas(self):
@@ -171,7 +170,7 @@ class DecoderDialog(QDialog):
             self.decoderchainUpdate()
 
             # If name is already there, overwrite existing
-            for i in range(0, len(self.decodings)):
+            for i in range(len(self.decodings)):
                 if name == self.decodings[i].name:
                     self.ui.combobox_decodings.setCurrentIndex(i)
                     self.decodings[i] = Encoding(self.chainstr)
@@ -189,10 +188,14 @@ class DecoderDialog(QDialog):
     def delete_decoding(self):
         num = self.ui.combobox_decodings.currentIndex()
         if num >= 0:
-            reply = QMessageBox.question(self, self.tr("Delete Decoding?"),
-                                         self.tr("Do you really want to delete " + "'{}'?".format(
-                                             self.decodings[num].name)),
-                                         QMessageBox.Yes | QMessageBox.No)
+            reply = QMessageBox.question(
+                self,
+                self.tr("Delete Decoding?"),
+                self.tr(
+                    f"Do you really want to delete '{self.decodings[num].name}'?"
+                ),
+                QMessageBox.Yes | QMessageBox.No,
+            )
 
             if reply == QMessageBox.Yes:
                 self.decodings.pop(num)
@@ -218,12 +221,11 @@ class DecoderDialog(QDialog):
                 self.ui.decoderchain.addItem(i)
                 self.decoderchainUpdate()
                 last_i = self.ui.decoderchain.item(self.ui.decoderchain.count() - 1).text()
-            else:
-                if any(x in last_i for x in [settings.DECODING_REDUNDANCY, settings.DECODING_CARRIER,
+            elif any(x in last_i for x in [settings.DECODING_REDUNDANCY, settings.DECODING_CARRIER,
                                              settings.DECODING_SUBSTITUTION, settings.DECODING_EXTERNAL,
                                              settings.DECODING_DATAWHITENING, settings.DECODING_CUT,
                                              settings.DECODING_MORSE]):
-                    self.chainoptions[last_i] = i
+                self.chainoptions[last_i] = i
 
         self.decoderchainUpdate()
         self.decoder_update()
@@ -236,7 +238,7 @@ class DecoderDialog(QDialog):
         self.ui.saveas.setVisible(True)
         self.eliminateDuplicates()
         self.chainstr = [self.e.name]
-        for i in range(0, self.ui.decoderchain.count()):
+        for i in range(self.ui.decoderchain.count()):
             op = self.ui.decoderchain.item(i).text()
 
             # Is this function disabled?
@@ -315,7 +317,7 @@ class DecoderDialog(QDialog):
             tmp = self.ui.decoderchain.item(0).text()
             if tmp[-1] != " " and not tmp[-1].isnumeric():
                 self.ui.decoderchain.takeItem(0)
-                self.ui.decoderchain.insertItem(0, tmp + " ")
+                self.ui.decoderchain.insertItem(0, f"{tmp} ")
 
         # Ignore internal move (same count()) and removed elements and lists < 2 // len(self.old_decoderchain)+1 == self.ui.decoderchain.count()
         if decoderchain_count > 1 and decoderchain_count > olddecoderchain_count:
@@ -328,34 +330,22 @@ class DecoderDialog(QDialog):
 
             # Count number of current elements and append string "#<num>" to current text, if num > 1
             txt = self.ui.decoderchain.item(elem).text()
-            num = 0
-            for i in range(0, decoderchain_count):
-                if txt in self.ui.decoderchain.item(i).text():
-                    num += 1
-            if num > 1:
-                tmp_txt = txt + " #" + str(num)
-            else:
-                tmp_txt = txt + " "
-
-            # Check duplicate names
-            dup = False
-            for i in range(0, decoderchain_count):
-                if self.ui.decoderchain.item(i).text() == tmp_txt:
-                    dup = True
-                    break
-
+            num = sum(
+                txt in self.ui.decoderchain.item(i).text()
+                for i in range(decoderchain_count)
+            )
+            tmp_txt = f"{txt} #{str(num)}" if num > 1 else f"{txt} "
+            dup = any(
+                self.ui.decoderchain.item(i).text() == tmp_txt
+                for i in range(decoderchain_count)
+            )
             if dup:
                 for i in range(1, num):
-                    if i > 1:
-                        tmp_txt = txt + " #" + str(i)
-                    else:
-                        tmp_txt = txt + " "
-
-                    dup = False
-                    for j in range(0, decoderchain_count):
-                        if self.ui.decoderchain.item(j).text() == tmp_txt:
-                            dup = True
-                            break
+                    tmp_txt = f"{txt} #{str(i)}" if i > 1 else f"{txt} "
+                    dup = any(
+                        self.ui.decoderchain.item(j).text() == tmp_txt
+                        for j in range(decoderchain_count)
+                    )
                     if not dup:
                         break
 
@@ -366,8 +356,9 @@ class DecoderDialog(QDialog):
 
         # Save current decoderchain to old_decoderchain
         self.old_decoderchain = []
-        for i in range(0, decoderchain_count):
-            self.old_decoderchain.append(self.ui.decoderchain.item(i).text())
+        self.old_decoderchain.extend(
+            self.ui.decoderchain.item(i).text() for i in range(decoderchain_count)
+        )
 
     def decoder_update(self):
         # Only allow {0, 1}
@@ -382,7 +373,7 @@ class DecoderDialog(QDialog):
         # Write decoded bits
         bit = self.e.str2bit(self.ui.inpt.text())
         decoded = self.e.bit2str(self.e.decode(bit))
-        errors = "[Decoding Errors = " + str(self.e.analyze(bit)[0]) + "]"
+        errors = f"[Decoding Errors = {str(self.e.analyze(bit)[0])}]"
         self.ui.decoding_errors_label.setText(errors)
         self.ui.output.setText(decoded)
         self.ui.output.setCursorPosition(0)

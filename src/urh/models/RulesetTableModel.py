@@ -56,11 +56,11 @@ class RulesetTableModel(QAbstractTableModel):
                     rule.start = int(value) - 1
                 elif j == 1:
                     rule.end = int(value)
-                if j == 2:
+                elif j == 2:
                     rule.value_type = int(value)
-                if j == 3:
+                elif j == 3:
                     rule.operator_description = self.operator_descriptions[int(value)]
-                if j == 4:
+                elif j == 4:
                     rule.target_value = value
             except ValueError:
                 return False

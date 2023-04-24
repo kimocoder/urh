@@ -12,10 +12,14 @@ class GeneratorTreeModel(ProtocolTreeModel):
         self.rootItem = root_item
 
     def flags(self, index: QModelIndex):
-        if not index.isValid():
-            return Qt.ItemIsEnabled
-
-        return Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsDragEnabled | Qt.ItemIsDropEnabled
+        return (
+            Qt.ItemIsEnabled
+            | Qt.ItemIsSelectable
+            | Qt.ItemIsDragEnabled
+            | Qt.ItemIsDropEnabled
+            if index.isValid()
+            else Qt.ItemIsEnabled
+        )
 
     def mimeTypes(self):
         return [] # Prohibit Drag Drop in Generator

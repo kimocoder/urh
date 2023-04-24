@@ -72,9 +72,7 @@ class CommonRange(object):
 
     @property
     def byte_order(self):
-        if self.byte_order_is_unknown:
-            return "big"
-        return self.__byte_order
+        return "big" if self.byte_order_is_unknown else self.__byte_order
 
     @byte_order.setter
     def byte_order(self, val: str):
@@ -97,25 +95,25 @@ class CommonRange(object):
         elif self.range_type == "byte":
             return n * 8
         else:
-            raise ValueError("Unknown range type {}".format(self.range_type))
+            raise ValueError(f"Unknown range type {self.range_type}")
 
     def __repr__(self):
-        result = "{} {}-{} ({} {})".format(self.field_type, self.bit_start,
-                                           self.bit_end, self.length, self.range_type)
+        result = f"{self.field_type} {self.bit_start}-{self.bit_end} ({self.length} {self.range_type})"
 
         result += " Values: " + " ".join(map(util.convert_numbers_to_hex_string, self.values))
         if self.score is not None:
-            result += " Score: " + str(self.score)
+            result += f" Score: {str(self.score)}"
         result += " Message indices: {" + ",".join(map(str, sorted(self.message_indices))) + "}"
         return result
 
     def __eq__(self, other):
-        if not isinstance(other, CommonRange):
-            return False
-
-        return self.bit_start == other.bit_start and \
-               self.bit_end == other.bit_end and \
-               self.field_type == other.field_type
+        return (
+            self.bit_start == other.bit_start
+            and self.bit_end == other.bit_end
+            and self.field_type == other.field_type
+            if isinstance(other, CommonRange)
+            else False
+        )
 
     def __hash__(self):
         return hash((self.start, self.length, self.field_type))
@@ -197,9 +195,9 @@ class ChecksumRange(CommonRange):
         return hash((self.start, self.length, self.data_range_start, self.data_range_end, self.crc))
 
     def __repr__(self):
-        return super().__repr__() + " \t" + \
-               "{}".format(self.crc.caption) + \
-               " Datarange: {}-{} ".format(self.data_range_start, self.data_range_end)
+        return (
+            super().__repr__() + " \t" + f"{self.crc.caption}"
+        ) + f" Datarange: {self.data_range_start}-{self.data_range_end} "
 
 
 class EmptyCommonRange(CommonRange):
@@ -216,7 +214,7 @@ class EmptyCommonRange(CommonRange):
                and other.field_type == self.field_type
 
     def __repr__(self):
-        return "No " + self.field_type
+        return f"No {self.field_type}"
 
     def __hash__(self):
         return hash(super)
@@ -264,17 +262,18 @@ class CommonRangeContainer(object):
         return self.__ranges == ranges
 
     def has_same_ranges_as_container(self, container):
-        if not isinstance(container, CommonRangeContainer):
-            return False
-
-        return self.__ranges == container.__ranges
+        return (
+            self.__ranges == container.__ranges
+            if isinstance(container, CommonRangeContainer)
+            else False
+        )
 
     @staticmethod
     def has_overlapping_ranges(ranges: list) -> bool:
-        for rng1, rng2 in itertools.combinations(ranges, 2):
-            if rng1.overlaps_with(rng2):
-                return True
-        return False
+        return any(
+            rng1.overlaps_with(rng2)
+            for rng1, rng2 in itertools.combinations(ranges, 2)
+        )
 
     def __len__(self):
         return len(self.__ranges)
@@ -290,7 +289,9 @@ class CommonRangeContainer(object):
         return pformat(self.__ranges)
 
     def __eq__(self, other):
-        if not isinstance(other, CommonRangeContainer):
-            return False
-
-        return self.__ranges == other.__ranges and self.message_indices == other.message_indices
+        return (
+            self.__ranges == other.__ranges
+            and self.message_indices == other.message_indices
+            if isinstance(other, CommonRangeContainer)
+            else False
+        )

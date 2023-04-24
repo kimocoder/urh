@@ -22,7 +22,9 @@ class Preprocessor(object):
 
     def __init__(self, bitvectors: list, existing_message_types: dict = None):
         self.bitvectors = bitvectors  # type: list[np.ndarray]
-        self.existing_message_types = existing_message_types if existing_message_types is not None else dict()
+        self.existing_message_types = (
+            existing_message_types if existing_message_types is not None else {}
+        )
 
     def preprocess(self) -> (np.ndarray, int):
         raw_preamble_positions = self.get_raw_preamble_positions()
@@ -67,13 +69,12 @@ class Preprocessor(object):
                     # Consider case where sync word starts with preamble pattern
                     sync_start = bits.find(sync_word, sync_start + 1, sync_start + 2 * len(sync_word))
 
-                    if sync_start != -1:
-                        if sync_start - preamble_starts[i] >= 2:
-                            preamble_lengths.append(sync_start - preamble_starts[i])
+                if sync_start != -1 and sync_start - preamble_starts[i] >= 2:
+                    preamble_lengths.append(sync_start - preamble_starts[i])
 
             preamble_lengths.sort()
 
-            if len(preamble_lengths) == 0:
+            if not preamble_lengths:
                 result[i] = 0
             elif len(preamble_lengths) == 1:
                 result[i] = preamble_lengths[0]
@@ -148,18 +149,16 @@ class Preprocessor(object):
                       if len(word) == estimated_sync_length}
         self.__debug("Sync words", sync_words)
 
-        additional_syncs = self.__find_additional_sync_words(estimated_sync_length, sync_words, possible_sync_words)
-
-        if additional_syncs:
+        if additional_syncs := self.__find_additional_sync_words(
+            estimated_sync_length, sync_words, possible_sync_words
+        ):
             self.__debug("Found additional sync words", additional_syncs)
-            sync_words.update(additional_syncs)
+            sync_words |= additional_syncs
 
-        result = []
-        for sync_word in sorted(sync_words, key=sync_words.get, reverse=True):
-            # Convert bytes back to string
-            result.append("".join(str(c) for c in sync_word))
-
-        return result
+        return [
+            "".join(str(c) for c in sync_word)
+            for sync_word in sorted(sync_words, key=sync_words.get, reverse=True)
+        ]
 
     def __find_additional_sync_words(self, sync_length: int, present_sync_words, possible_sync_words) -> dict:
         """
@@ -177,24 +176,32 @@ class Preprocessor(object):
         messages_without_sync = [i for i, bv in enumerate(self.bitvectors)
                                  if not any(awre_util.find_occurrences(bv, s, return_after_first=True) for s in np_syn)]
 
-        result = dict()
-        if len(messages_without_sync) == 0:
+        result = {}
+        if not messages_without_sync:
             return result
 
         # Is there another sync word that applies to all messages without sync?
-        additional_candidates = {word: score for word, score in possible_sync_words.items()
-                                 if len(word) > sync_length and not any(s in word for s in present_sync_words)}
+        additional_candidates = {
+            word: score
+            for word, score in possible_sync_words.items()
+            if len(word) > sync_length
+            and all(s not in word for s in present_sync_words)
+        }
 
         for sync in sorted(additional_candidates, key=additional_candidates.get, reverse=True):
-            if len(messages_without_sync) == 0:
+            if not messages_without_sync:
                 break
 
             score = additional_candidates[sync]
             s = sync[:sync_length]
             np_s = np.fromiter(s, dtype=np.uint8, count=len(s))
-            matching = [i for i in messages_without_sync
-                        if awre_util.find_occurrences(self.bitvectors[i], np_s, return_after_first=True)]
-            if matching:
+            if matching := [
+                i
+                for i in messages_without_sync
+                if awre_util.find_occurrences(
+                    self.bitvectors[i], np_s, return_after_first=True
+                )
+            ]:
                 result[s] = score
                 for m in matching:
                     messages_without_sync.remove(m)

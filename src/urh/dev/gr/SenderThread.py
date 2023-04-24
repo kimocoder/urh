@@ -26,7 +26,7 @@ class SenderThread(AbstractBaseThread):
 
     @property
     def repeat_endless(self):
-        return self.sending_repeats == 0 or self.sending_repeats == -1
+        return self.sending_repeats in [0, -1]
 
     @property
     def samples_per_transmission(self):

@@ -37,9 +37,9 @@ class Rule(object):
     @start.setter
     def start(self, value: int):
         try:
-            self.__start = int(value)
+            self.__start = value
         except ValueError:
-            logger.warning("{} could not be cast to integer".format(value))
+            logger.warning(f"{value} could not be cast to integer")
 
     @property
     def end(self) -> int:
@@ -48,9 +48,9 @@ class Rule(object):
     @end.setter
     def end(self, value: int):
         try:
-            self.__end = int(value)
+            self.__end = value
         except ValueError:
-            logger.warning("{} could not be cast to integer".format(value))
+            logger.warning(f"{value} could not be cast to integer")
 
     @property
     def value_type(self):
@@ -59,9 +59,9 @@ class Rule(object):
     @value_type.setter
     def value_type(self, value: int):
         try:
-            self.__value_type = int(value)
+            self.__value_type = value
         except ValueError:
-            logger.warning("{} could not be cast to integer".format(value))
+            logger.warning(f"{value} could not be cast to integer")
 
     def applies_for_message(self, message):
         data = message.decoded_bits_str if self.value_type == 0 else message.decoded_hex_str if self.value_type == 1 else message.decoded_ascii_str
@@ -77,7 +77,7 @@ class Rule(object):
             if val == value:
                 self.operator = key
                 return
-        logger.warning("Could not find operator description " + str(value))
+        logger.warning(f"Could not find operator description {str(value)}")
 
     def to_xml(self) -> ET.Element:
         root = ET.Element("rule")
@@ -111,7 +111,7 @@ class Ruleset(list):
         elif self.mode == Mode.none_applies:
             return napplied_rules == 0
         else:
-            raise ValueError("Unknown behavior " + str(self.mode))
+            raise ValueError(f"Unknown behavior {str(self.mode)}")
 
     def to_xml(self) -> ET.Element:
         root = ET.Element("ruleset")
@@ -124,10 +124,9 @@ class Ruleset(list):
 
     @staticmethod
     def from_xml(tag: ET.Element):
-        if tag:
-            result = Ruleset(mode=Mode(int(tag.get("mode", 0))))
-            for rule in tag.findall("rule"):
-                result.append(Rule.from_xml(rule))
-            return result
-        else:
+        if not tag:
             return Ruleset(mode=Mode.all_apply)
+        result = Ruleset(mode=Mode(int(tag.get("mode", 0))))
+        for rule in tag.findall("rule"):
+            result.append(Rule.from_xml(rule))
+        return result

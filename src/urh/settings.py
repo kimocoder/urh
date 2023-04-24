@@ -149,14 +149,13 @@ def read(key: str, default_value=None, type=str):
     if val is None:
         val = type()
 
-    if type is bool:
-        val = str(val).lower()
-        try:
-            return bool(int(val))
-        except ValueError:
-            return str(val).lower() == "true"
-    else:
+    if type is not bool:
         return type(val)
+    val = str(val).lower()
+    try:
+        return bool(int(val))
+    except ValueError:
+        return val.lower() == "true"
 
 
 def write(key: str, value):
@@ -179,10 +178,7 @@ def get_receive_buffer_size(resume_on_full_receive_buffer: bool, spectrum_mode: 
         return OVERWRITE_RECEIVE_BUFFER_SIZE
 
     if resume_on_full_receive_buffer:
-        if spectrum_mode:
-            num_samples = SPECTRUM_BUFFER_SIZE
-        else:
-            num_samples = SNIFF_BUFFER_SIZE
+        num_samples = SPECTRUM_BUFFER_SIZE if spectrum_mode else SNIFF_BUFFER_SIZE
     else:
         # Take 60% of avail memory
         threshold = read('ram_threshold', 0.6, float)
@@ -191,7 +187,7 @@ def get_receive_buffer_size(resume_on_full_receive_buffer: bool, spectrum_mode: 
     # Do not let it allocate too much memory on 32 bit
     if 8 * 2 * num_samples > sys.maxsize:
         num_samples = sys.maxsize // (8 * 2 * 1.5)
-        logger.info("Correcting buffer size to {}".format(num_samples))
+        logger.info(f"Correcting buffer size to {num_samples}")
 
     logger.info("Allocate receive buffer with {0}B".format(Formatter.big_value_with_suffix(num_samples * 8)))
     return int(num_samples)

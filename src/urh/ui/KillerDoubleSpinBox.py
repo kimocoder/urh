@@ -73,6 +73,6 @@ class KillerDoubleSpinBox(QDoubleSpinBox):
         if self.suffix().upper() in ("", "K", "M", "G"):
             rx = QRegExp("^(-?[0-9]+)[.]?[0-9]*[kKmMgG]?$")
         else:
-            rx = QRegExp("^(-?[0-9]+)[.]?[0-9]*[{}]?$".format(self.suffix()))
+            rx = QRegExp(f"^(-?[0-9]+)[.]?[0-9]*[{self.suffix()}]?$")
         result = QValidator.Acceptable if rx.exactMatch(inpt.replace(",", ".")) else QValidator.Invalid
         return result, inpt, pos

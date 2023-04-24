@@ -27,14 +27,14 @@ class SimulatorParticipantListModel(QAbstractListModel):
             return None
 
         if role == Qt.DisplayRole:
-            return participant.name + " (" + participant.shortname + ")"
+            return f"{participant.name} ({participant.shortname})"
         elif role == Qt.CheckStateRole:
             return Qt.Checked if participant.simulate else Qt.Unchecked
 
     def setData(self, index: QModelIndex, value, role=None):
         i = index.row()
-        participants = self.simulator_config.active_participants
         if role == Qt.CheckStateRole:
+            participants = self.simulator_config.active_participants
             participants[i].simulate = value
             self.update()
             self.participant_simulate_changed.emit(participants[i])

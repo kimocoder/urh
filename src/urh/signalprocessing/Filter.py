@@ -37,7 +37,7 @@ class Filter(object):
     def apply_fir_filter(self, input_signal: np.ndarray) -> np.ndarray:
         if input_signal.dtype != np.complex64:
             tmp = np.empty(len(input_signal)//2, dtype=np.complex64)
-            tmp.real = input_signal[0::2]
+            tmp.real = input_signal[::2]
             tmp.imag = input_signal[1::2]
             input_signal = tmp
 
@@ -73,7 +73,7 @@ class Filter(object):
         else:
             fft, ifft = np.fft.rfft, np.fft.irfft  # use real fft
 
-        result = ifft(fft(x, n_opt) * fft(h, n_opt), n_opt)[0:n]
+        result = ifft(fft(x, n_opt) * fft(h, n_opt), n_opt)[:n]
         too_much = (len(result) - len(x)) // 2  # Center result
         return result[too_much: -too_much]
 
@@ -109,10 +109,7 @@ class Filter(object):
         # Multiply sinc filter with window function
         h = h * w
 
-        # Normalize to get unity gain
-        h_unity = h / np.sum(h)
-
-        return h_unity
+        return h / np.sum(h)
 
     @staticmethod
     def design_windowed_sinc_bandpass(f_low, f_high, bw):

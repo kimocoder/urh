@@ -11,7 +11,7 @@ class ZeroHidePlugin(ProtocolPlugin):
         self.following_zeros = 5 if 'following_zeros' not in self.qsettings.allKeys() else self.qsettings.value('following_zeros', type=int)
         self.undo_stack = None
         self.command = None
-        self.zero_hide_offsets = dict()
+        self.zero_hide_offsets = {}
 
     def create_connects(self):
         self.settings_frame.spinBoxFollowingZeros.setValue(self.following_zeros)

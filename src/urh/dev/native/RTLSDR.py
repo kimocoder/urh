@@ -32,13 +32,13 @@ class RTLSDR(Device):
         # identifier gets set in self.receive_process_arguments
         device_number = int(device_identifier)
         ret = rtlsdr.open(device_number)
-        ctrl_connection.send("OPEN (#{}):{}".format(device_number, ret))
+        ctrl_connection.send(f"OPEN (#{device_number}):{ret}")
         return ret == 0
 
     @classmethod
     def prepare_sync_receive(cls, ctrl_connection: Connection):
         ret = rtlsdr.reset_buffer()
-        ctrl_connection.send("RESET_BUFFER:" + str(ret))
+        ctrl_connection.send(f"RESET_BUFFER:{str(ret)}")
         return ret
 
     @classmethod
@@ -49,7 +49,7 @@ class RTLSDR(Device):
     def shutdown_device(cls, ctrl_connection, is_tx: bool):
         logger.debug("RTLSDR: closing device")
         ret = rtlsdr.close()
-        ctrl_connection.send("CLOSE:" + str(ret))
+        ctrl_connection.send(f"CLOSE:{str(ret)}")
 
     def __init__(self, freq, gain, srate, device_number, resume_on_full_receive_buffer=False):
         super().__init__(center_freq=freq, sample_rate=srate, bandwidth=0,

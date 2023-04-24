@@ -26,11 +26,10 @@ class ProtocolTreeModel(QAbstractItemModel):
         """
         :rtype: dict[int, list of ProtocolAnalyzer]
         """
-        result = {}
-        for i, group in enumerate(self.rootItem.children):
-            result[i] = [child.protocol for child in group.children]
-
-        return result
+        return {
+            i: [child.protocol for child in group.children]
+            for i, group in enumerate(self.rootItem.children)
+        }
 
     @property
     def ngroups(self):
@@ -49,11 +48,10 @@ class ProtocolTreeModel(QAbstractItemModel):
         """
         :rtype: dict[int, list of ProtocolTreeItem]
         """
-        result = {}
-        for i, group in enumerate(self.rootItem.children):
-            result[i] = [child for child in group.children]
-
-        return result
+        return {
+            i: list(group.children)
+            for i, group in enumerate(self.rootItem.children)
+        }
 
     def group_at(self, index: int) -> ProtocolGroup:
         return self.rootItem.child(index).group
@@ -73,8 +71,7 @@ class ProtocolTreeModel(QAbstractItemModel):
 
     def getItem(self, index: QModelIndex) -> ProtocolTreeItem:
         if index.isValid():
-            item = index.internalPointer()
-            if item:
+            if item := index.internalPointer():
                 return item
 
         return self.rootItem
@@ -91,8 +88,7 @@ class ProtocolTreeModel(QAbstractItemModel):
             return QModelIndex()
 
         parent_item = self.getItem(parent)
-        child_item = parent_item.child(row)
-        if child_item:
+        if child_item := parent_item.child(row):
             return self.createIndex(row, column, child_item)
         else:
             return QModelIndex()
@@ -155,19 +151,23 @@ class ProtocolTreeModel(QAbstractItemModel):
 
     def remove_protocol(self, protocol: ProtocolAnalyzer):
         self.beginResetModel()
-        result = False
-        for group in self.rootItem.children:
-            if group.removeProtocol(protocol):
-                result = True
-                break
+        result = any(
+            group.removeProtocol(protocol) for group in self.rootItem.children
+        )
         self.endResetModel()
         return result
 
     def flags(self, index: QModelIndex):
-        if not index.isValid():
-            return Qt.ItemIsDropEnabled
-        return Qt.ItemIsEditable | Qt.ItemIsEnabled | Qt.ItemIsSelectable | \
-               Qt.ItemIsUserCheckable | Qt.ItemIsDragEnabled | Qt.ItemIsDropEnabled
+        return (
+            Qt.ItemIsEditable
+            | Qt.ItemIsEnabled
+            | Qt.ItemIsSelectable
+            | Qt.ItemIsUserCheckable
+            | Qt.ItemIsDragEnabled
+            | Qt.ItemIsDropEnabled
+            if index.isValid()
+            else Qt.ItemIsDropEnabled
+        )
 
     def supportedDragActions(self):
         return Qt.MoveAction | Qt.CopyAction
@@ -201,10 +201,7 @@ class ProtocolTreeModel(QAbstractItemModel):
 
         for index in indexes:
             row, column, parent = map(int, index.split(","))
-            if parent == -1:
-                parent = self.rootItem
-            else:
-                parent = self.rootItem.child(parent)
+            parent = self.rootItem if parent == -1 else self.rootItem.child(parent)
             node = parent.child(row)
             try:
                 if node.is_group:
@@ -212,7 +209,7 @@ class ProtocolTreeModel(QAbstractItemModel):
                 else:
                     contains_files = True
             except AttributeError:
-                logger.error("Could not perform drop for index {}".format(index))
+                logger.error(f"Could not perform drop for index {index}")
                 continue
 
             if contains_files and contains_groups:
@@ -255,25 +252,23 @@ class ProtocolTreeModel(QAbstractItemModel):
                     parent_node.appendChild(dragNode)
 
                 self.proto_to_group_added.emit(self.rootItem.index_of(parent_node))
-        else:
-            # Dropped on file
-            if contains_groups:
-                # Can't drop groups on files
-                return False
+        elif contains_groups:
+            # Can't drop groups on files
+            return False
 
-            elif parent_node.containsChilds(drag_nodes) and drop_node in parent_node.children:
-                # "Nodes on node in parent folder dropped"
-                pos = parent_node.index_of(drop_node)
-                parent_node.bringChildsToIndex(pos, drag_nodes)
-            elif parent_node.containsChilds(drag_nodes):
-                parent_node.bringChildsToFront(drag_nodes)
-            else:
-                # "Nodes on node in distinct folder dropped"
-                pos = parent_node.index_of(drop_node)
-                for dragNode in drag_nodes:
-                    dragNode.setParent(parent_node)
-                    parent_node.insertChild(pos, dragNode)
-                self.proto_to_group_added.emit(self.rootItem.index_of(parent_node))
+        elif parent_node.containsChilds(drag_nodes) and drop_node in parent_node.children:
+            # "Nodes on node in parent folder dropped"
+            pos = parent_node.index_of(drop_node)
+            parent_node.bringChildsToIndex(pos, drag_nodes)
+        elif parent_node.containsChilds(drag_nodes):
+            parent_node.bringChildsToFront(drag_nodes)
+        else:
+            # "Nodes on node in distinct folder dropped"
+            pos = parent_node.index_of(drop_node)
+            for dragNode in drag_nodes:
+                dragNode.setParent(parent_node)
+                parent_node.insertChild(pos, dragNode)
+            self.proto_to_group_added.emit(self.rootItem.index_of(parent_node))
 
         self.item_dropped.emit()
         return True
@@ -310,11 +305,7 @@ class ProtocolTreeModel(QAbstractItemModel):
             return
 
         group_id = self.rootItem.index_of(group_item)
-        if group_id == 0:
-            new_group_index = 1
-        else:
-            new_group_index = group_id - 1
-
+        new_group_index = 1 if group_id == 0 else group_id - 1
         new_group = self.rootItem.children[new_group_index]
 
         for i in reversed(range(group_item.childCount())):

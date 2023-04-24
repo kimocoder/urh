@@ -68,12 +68,7 @@ class FieldType(object):
 
         e = ET.parse(settings.FIELD_TYPE_SETTINGS).getroot()
 
-        result = []
-
-        for tag in e.findall("field_type"):
-            result.append(FieldType.from_xml(tag))
-
-        return result
+        return [FieldType.from_xml(tag) for tag in e.findall("field_type")]
 
     def to_xml(self):
         return ET.Element("field_type", attrib={    "caption": self.caption,

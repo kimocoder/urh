@@ -54,13 +54,12 @@ class FuzzingTableModel(QAbstractTableModel):
         if role == Qt.DisplayRole:
             if self.data is None:
                 return None
-            else:
-                if self.proto_view == 0:
-                    return self.data[i][j]
-                elif self.proto_view == 1:
-                    return "{0:x}".format(int(self.data[i][4 * j:4 * (j + 1)], 2))
-                elif self.proto_view == 2:
-                    return chr(int(self.data[i][8 * j:8 * (j + 1)], 2))
+            if self.proto_view == 0:
+                return self.data[i][j]
+            elif self.proto_view == 1:
+                return "{0:x}".format(int(self.data[i][4 * j:4 * (j + 1)], 2))
+            elif self.proto_view == 2:
+                return chr(int(self.data[i][8 * j:8 * (j + 1)], 2))
 
         elif role == Qt.FontRole:
             if i == 0:
@@ -97,7 +96,7 @@ class FuzzingTableModel(QAbstractTableModel):
 
     def add_range(self, start: int, end: int, step: int):
         lbl = self.fuzzing_label
-        e = end if end < lbl.fuzz_maximum else lbl.fuzz_maximum
+        e = min(end, lbl.fuzz_maximum)
         for i in range(start, e, step):
             lbl.add_decimal_fuzz_value(i)
 
@@ -120,8 +119,8 @@ class FuzzingTableModel(QAbstractTableModel):
 
     def add_random(self, number: int, minimum: int, maximum: int):
         lbl = self.fuzzing_label
-        mini = minimum if minimum < lbl.fuzz_maximum else lbl.fuzz_maximum
-        maxi = maximum if maximum < lbl.fuzz_maximum else lbl.fuzz_maximum
+        mini = min(minimum, lbl.fuzz_maximum)
+        maxi = min(maximum, lbl.fuzz_maximum)
 
         random_vals = numpy.random.randint(mini, maxi + 1, number)
         for val in random_vals:

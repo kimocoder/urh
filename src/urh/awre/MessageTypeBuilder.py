@@ -35,16 +35,16 @@ class MessageTypeBuilder(object):
             name = label_type.value
 
         if data_start is None:
-            # End of sync or preamble
-            sync_label = self.message_type.get_first_label_with_type(FieldType.Function.SYNC)
-            if sync_label:
+            if sync_label := self.message_type.get_first_label_with_type(
+                FieldType.Function.SYNC
+            ):
                 data_start = sync_label.end
+            elif preamble_label := self.message_type.get_first_label_with_type(
+                FieldType.Function.PREAMBLE
+            ):
+                data_start = preamble_label.end
             else:
-                preamble_label = self.message_type.get_first_label_with_type(FieldType.Function.PREAMBLE)
-                if preamble_label:
-                    data_start = preamble_label.end
-                else:
-                    data_start = 0
+                data_start = 0
 
         if data_end is None:
             data_end = start

@@ -60,7 +60,7 @@ class ContinuousModulator(object):
         logger.debug("Stopped continuous modulation")
 
     def modulate_continuously(self, num_repeats):
-        rng = iter(int, 1) if num_repeats <= 0 else range(0, num_repeats)  # <= 0 = forever
+        rng = iter(int, 1) if num_repeats <= 0 else range(num_repeats)
         for _ in rng:
             if self.abort.value:
                 return

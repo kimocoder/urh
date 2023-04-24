@@ -45,15 +45,15 @@ class LimeSDR(Device):
     def setup_device(cls, ctrl_connection: Connection, device_identifier):
         ret = limesdr.open(device_identifier)
         if not device_identifier:
-            ctrl_connection.send("OPEN:" + str(ret))
+            ctrl_connection.send(f"OPEN:{str(ret)}")
         else:
-            ctrl_connection.send("OPEN ({}):{}".format(device_identifier, ret))
+            ctrl_connection.send(f"OPEN ({device_identifier}):{ret}")
         limesdr.disable_all_channels()
         if ret != 0:
             return False
 
         ret = limesdr.init()
-        ctrl_connection.send("INIT:" + str(ret))
+        ctrl_connection.send(f"INIT:{str(ret)}")
 
         return ret == 0
 
@@ -81,7 +81,7 @@ class LimeSDR(Device):
         limesdr.destroy_stream()
         limesdr.disable_all_channels()
         ret = limesdr.close()
-        ctrl_connection.send("CLOSE:" + str(ret))
+        ctrl_connection.send(f"CLOSE:{str(ret)}")
         return True
 
     @classmethod

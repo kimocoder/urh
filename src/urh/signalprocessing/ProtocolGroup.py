@@ -78,8 +78,7 @@ class ProtocolGroup(object):
 
     def protocol_at(self, index: int) -> ProtocolAnalyzer:
         try:
-            proto = self.items[index].protocol
-            return proto
+            return self.items[index].protocol
         except IndexError:
             return None
 

@@ -18,7 +18,9 @@ class Plugin(QObject):
         self.plugin_path = ""
         self.description = ""
         self.__settings_frame = None
-        self.qsettings = QSettings(QSettings.IniFormat, QSettings.UserScope, "urh", self.name + "-plugin")
+        self.qsettings = QSettings(
+            QSettings.IniFormat, QSettings.UserScope, "urh", f"{self.name}-plugin"
+        )
 
     @property
     def settings_frame(self):

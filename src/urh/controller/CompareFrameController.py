@@ -187,7 +187,7 @@ class CompareFrameController(QWidget):
     @active_message_type.setter
     def active_message_type(self, val: MessageType):
         if val not in self.proto_analyzer.message_types:
-            logger.error("Message type {} not in message types".format(val.name))
+            logger.error(f"Message type {val.name} not in message types")
             return
 
         self.__selected_message_type = val
@@ -241,7 +241,7 @@ class CompareFrameController(QWidget):
             state = message.decoding_state if message.decoding_state != message.decoder.ErrorState.SUCCESS else ""
             color = "green" if errors == 0 and state == "" else "red"
 
-            self.ui.lDecodingErrorsValue.setStyleSheet("color: " + color)
+            self.ui.lDecodingErrorsValue.setStyleSheet(f"color: {color}")
             self.ui.lDecodingErrorsValue.setText(locale.format_string("%d (%.02f%%) %s", (errors, percent, state)))
         else:
             self.ui.lDecodingErrorsValue.setText("No message selected")
@@ -343,9 +343,12 @@ class CompareFrameController(QWidget):
             if messages is None:
                 messages = self.proto_analyzer.messages
                 if len(messages) > 10:
-                    reply = QMessageBox.question(self, "Set decoding",
-                                                 "Do you want to apply the selected decoding to {} messages?".format(
-                                                     len(messages)), QMessageBox.Yes | QMessageBox.No)
+                    reply = QMessageBox.question(
+                        self,
+                        "Set decoding",
+                        f"Do you want to apply the selected decoding to {len(messages)} messages?",
+                        QMessageBox.Yes | QMessageBox.No,
+                    )
                     if reply != QMessageBox.Yes:
                         self.ui.cbDecoding.blockSignals(True)
                         self.ui.cbDecoding.setCurrentText("...")
@@ -467,7 +470,7 @@ class CompareFrameController(QWidget):
         return pa
 
     def add_sniffed_protocol_messages(self, messages: list):
-        if len(messages) > 0:
+        if messages:
             proto_analyzer = ProtocolAnalyzer(None)
             proto_analyzer.name = datetime.fromtimestamp(messages[0].timestamp).strftime("%Y-%m-%d %H:%M:%S")
             proto_analyzer.messages = messages
@@ -580,7 +583,7 @@ class CompareFrameController(QWidget):
             self.ui.tblViewProtocol.showRow(i)
 
         self.protocol_model.hidden_rows.clear()
-        for proto in relative_hidden_row_positions.keys():
+        for proto in relative_hidden_row_positions:
             try:
                 start = min(self.rows_for_protocols[proto])
                 for rel_pos in relative_hidden_row_positions[proto]:
@@ -714,8 +717,11 @@ class CompareFrameController(QWidget):
             self.search()
             self.ui.tblLabelValues.clearSelection()
 
-            matching_rows = set(search_result[0] for search_result in self.protocol_model.search_results)
-            rows_to_hide = set(range(0, self.protocol_model.row_count)) - matching_rows
+            matching_rows = {
+                search_result[0]
+                for search_result in self.protocol_model.search_results
+            }
+            rows_to_hide = set(range(self.protocol_model.row_count)) - matching_rows
             self.ui.tblViewProtocol.hide_rows(rows_to_hide)
         else:
             self.show_all_rows()
@@ -837,7 +843,7 @@ class CompareFrameController(QWidget):
 
     def show_all_rows(self):
         self.ui.lblShownRows.hide()
-        self.ui.tblViewProtocol.show_rows(range(0, self.protocol_model.row_count))
+        self.ui.tblViewProtocol.show_rows(range(self.protocol_model.row_count))
         self.set_shown_protocols()
 
     def show_all_cols(self):
@@ -933,7 +939,11 @@ class CompareFrameController(QWidget):
         visible_rows = [i for i in range(self.protocol_model.row_count) if not self.ui.tblViewProtocol.isRowHidden(i)
                         and i != self.protocol_model.refindex]
 
-        visible_diff_columns = set([diff_col for i in visible_rows for diff_col in self.protocol_model.diff_columns[i]])
+        visible_diff_columns = {
+            diff_col
+            for i in visible_rows
+            for diff_col in self.protocol_model.diff_columns[i]
+        }
 
         visible_cols = visible_label_columns & visible_diff_columns
         for j in range(self.protocol_model.col_count):
@@ -1306,16 +1316,14 @@ class CompareFrameController(QWidget):
             elif item.show:
                 active_group_ids.add(self.proto_tree_model.rootItem.index_of(item.parent()))
 
-        if len(active_group_ids) == 0:
+        if not active_group_ids:
             active_group_ids.add(0)
 
         if active_group_ids == set(self.active_group_ids):
             ignore_table_model_on_update = True
         else:
             ignore_table_model_on_update = False
-            self.active_group_ids = list(active_group_ids)
-            self.active_group_ids.sort()
-
+            self.active_group_ids = sorted(active_group_ids)
         self.ui.tblViewProtocol.selectionModel().select(sel, QItemSelectionModel.ClearAndSelect)
         self.ui.tblViewProtocol.blockSignals(False)
 
@@ -1337,7 +1345,9 @@ class CompareFrameController(QWidget):
             self.ui.lDecimalSelection.setText("")
             self.ui.lHexSelection.setText("")
             self.ui.lNumSelectedColumns.setText("0")
-            self.ui.lblLabelValues.setText(self.tr("Labels of {}".format(self.active_message_type.name)))
+            self.ui.lblLabelValues.setText(
+                self.tr(f"Labels of {self.active_message_type.name}")
+            )
             self.__set_decoding_error_label(message=None)
             self.updateUI(ignore_table_model=True, resize_table=False)
             return -1, -1
@@ -1379,15 +1389,19 @@ class CompareFrameController(QWidget):
         for group, tree_items in self.proto_tree_model.protocol_tree_items.items():
             for i, tree_item in enumerate(tree_items):
                 proto = tree_item.protocol
-                if proto.show and proto in self.rows_for_protocols:
-                    if any(i in self.rows_for_protocols[proto] for i in range(min_row, max_row + 1)):
-                        active_group_ids.add(group)
-                        self.selected_protocols.add(proto)
+                if (
+                    proto.show
+                    and proto in self.rows_for_protocols
+                    and any(
+                        i in self.rows_for_protocols[proto]
+                        for i in range(min_row, max_row + 1)
+                    )
+                ):
+                    active_group_ids.add(group)
+                    self.selected_protocols.add(proto)
 
         if active_group_ids != set(self.active_group_ids):
-            self.active_group_ids = list(active_group_ids)
-            self.active_group_ids.sort()
-
+            self.active_group_ids = sorted(active_group_ids)
         if message.rssi > 0:
             self.ui.lblRSSI.setText(locale.format_string("%.2f dBm", 10*math.log10(message.rssi)))
         else:
@@ -1413,7 +1427,7 @@ class CompareFrameController(QWidget):
     def on_ref_index_changed(self, new_ref_index: int):
         if new_ref_index != -1 and self.protocol_model.row_count:
             hide_correction = 0
-            for i in range(0, self.protocol_model.row_count):
+            for i in range(self.protocol_model.row_count):
                 if self.ui.tblViewProtocol.isRowHidden((new_ref_index + i) % self.protocol_model.row_count):
                     hide_correction = 0
                 else:
@@ -1431,7 +1445,7 @@ class CompareFrameController(QWidget):
             return
 
         self.active_message_type = self.proto_analyzer.message_types[row]
-        self.ui.lblLabelValues.setText("Labels of {}".format(self.active_message_type.name))
+        self.ui.lblLabelValues.setText(f"Labels of {self.active_message_type.name}")
         self.label_value_model.show_label_values = False
         self.label_value_model.update()
 
@@ -1491,7 +1505,7 @@ class CompareFrameController(QWidget):
     @pyqtSlot(str)
     def on_message_type_name_edited(self, new_name: str):
         if self.ui.lblLabelValues.text().startswith("Labels of"):
-            self.ui.lblLabelValues.setText("Labels of {}".format(new_name))
+            self.ui.lblLabelValues.setText(f"Labels of {new_name}")
 
     @pyqtSlot(int)
     def on_tab_bar_double_clicked(self, index: int):

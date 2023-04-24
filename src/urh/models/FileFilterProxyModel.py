@@ -15,7 +15,7 @@ class FileFilterProxyModel(QSortFilterProxyModel):
         return self.sourceModel().filePath(self.mapToSource(index))
 
     def data(self, index: QModelIndex, role=None):
-        if role == Qt.FontRole or role == Qt.TextColorRole:
+        if role in [Qt.FontRole, Qt.TextColorRole]:
             file_name = self.get_file_path(index)
             if hasattr(self, "open_files") and file_name in self.open_files:
                 if role == Qt.FontRole:

@@ -21,7 +21,9 @@ class PluginFrame(QFrame):
         self.ui.groupBoxSettings.setLayout(self.settings_layout)
         self.create_connects()
 
-        self.restoreGeometry(settings.read("{}/geometry".format(self.__class__.__name__), type=bytes))
+        self.restoreGeometry(
+            settings.read(f"{self.__class__.__name__}/geometry", type=bytes)
+        )
 
 
     def create_connects(self):

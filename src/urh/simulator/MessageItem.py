@@ -29,14 +29,18 @@ class MessageItem(GraphicsItem):
         labels = self.labels()
         width = self.number.boundingRect().width()
         # width += 5
-        width += sum([lbl.boundingRect().width() for lbl in labels])
+        width += sum(lbl.boundingRect().width() for lbl in labels)
         width += 5 * (len(labels) - 1)
         width += self.repeat_text.boundingRect().width()
 
         return width
 
     def refresh(self):
-        self.repeat_text.setPlainText("(" + str(self.model_item.repeat) + "x)" if self.model_item.repeat > 1 else "")
+        self.repeat_text.setPlainText(
+            f"({str(self.model_item.repeat)}x)"
+            if self.model_item.repeat > 1
+            else ""
+        )
 
     def labels(self):
         self.refresh_unlabeled_range_marker()
@@ -44,13 +48,13 @@ class MessageItem(GraphicsItem):
         result = []
 
         start = 0
-        i = 0
-
         message = self.model_item
 
         if len(message) and not message.message_type:
             result.append(unlabeled_range_items[0])
         else:
+            i = 0
+
             for lbl in message.message_type:
                 if lbl.start > start:
                     result.append(unlabeled_range_items[i])
@@ -78,7 +82,7 @@ class MessageItem(GraphicsItem):
             num_unlabeled_ranges = 0
 
         if len(urm) < num_unlabeled_ranges:
-            for i in range(num_unlabeled_ranges - len(urm)):
+            for _ in range(num_unlabeled_ranges - len(urm)):
                 UnlabeledRangeItem(self)
         else:
             for i in range(len(urm) - num_unlabeled_ranges):
@@ -106,11 +110,7 @@ class MessageItem(GraphicsItem):
 
         self.repeat_text.setPos(start_x, start_y)
 
-        if labels:
-            start_y += labels[0].boundingRect().height() + 5
-        else:
-            start_y += 26
-
+        start_y += labels[0].boundingRect().height() + 5 if labels else 26
         self.arrow.setLine(p_source.x(), start_y, p_destination.x(), start_y)
         super().update_position(x_pos, y_pos)
 

@@ -12,10 +12,7 @@ class SimulatorItem(object):
         return True
 
     def get_pos(self):
-        if self.parent() is not None:
-            return self.parent().children.index(self)
-
-        return 0
+        return self.parent().children.index(self) if self.parent() is not None else 0
 
     def index(self):
         if self.parent() is None:
@@ -26,7 +23,7 @@ class SimulatorItem(object):
 
         while item.parent().parent() is not None:
             item = item.parent()
-            result = str(item.get_pos() + 1) + "." + result
+            result = f"{str(item.get_pos() + 1)}.{result}"
 
         return result
 
@@ -61,22 +58,22 @@ class SimulatorItem(object):
         return len(self.children)
 
     def next_sibling(self):
-        result = None
         index = self.get_pos()
 
-        if self.parent() and index < self.parent().child_count() - 1:
-            result = self.parent().children[index + 1]
-
-        return result
+        return (
+            self.parent().children[index + 1]
+            if self.parent() and index < self.parent().child_count() - 1
+            else None
+        )
 
     def prev_sibling(self):
-        result = None
         index = self.get_pos()
 
-        if self.parent() and index > 0:
-            result = self.parent().children[index - 1]
-
-        return result
+        return (
+            self.parent().children[index - 1]
+            if self.parent() and index > 0
+            else None
+        )
 
     def next(self):
         if self.child_count():

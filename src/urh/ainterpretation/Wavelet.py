@@ -8,8 +8,7 @@ def normalized_haar_wavelet(omega, scale):
     omega_cpy = omega[:] / scale
     omega_cpy[0] = 1.0  # first element always zero, so prevent division by zero later
 
-    result = (1j * np.square(-1 + np.exp(0.5j * omega))) / omega_cpy
-    return result
+    return (1j * np.square(-1 + np.exp(0.5j * omega))) / omega_cpy
 
 
 def cwt_haar(x: np.ndarray, scale=10):
@@ -20,7 +19,7 @@ def cwt_haar(x: np.ndarray, scale=10):
     """
     next_power_two = 2 ** int(np.log2(len(x)))
 
-    x = x[0:next_power_two]
+    x = x[:next_power_two]
     num_data = len(x)
 
     # get FFT of x (eq. (3) in paper)
@@ -114,7 +113,7 @@ if __name__ == "__main__":
     plt.title("FFT magnitude")
     fft = np.fft.fft(data)
     fft = np.abs(fft)
-    ten_greatest_indices = np.argsort(fft)[::-1][0:10]
+    ten_greatest_indices = np.argsort(fft)[::-1][:10]
     print(ten_greatest_indices)
     print(fft[ten_greatest_indices])
     plt.plot(np.fft.fftshift(fft))
@@ -123,7 +122,7 @@ if __name__ == "__main__":
     fft = np.fft.fftshift(np.fft.fft(data))
     fft[np.abs(fft) < 0.2 * np.max(np.abs(fft))] = 0
     fft_phase = np.angle(fft)
-    ten_greatest_indices = np.argsort(np.abs(fft_phase))[::-1][0:10]
+    ten_greatest_indices = np.argsort(np.abs(fft_phase))[::-1][:10]
     print("FFT phases:")
     print(ten_greatest_indices)
     print(fft_phase[ten_greatest_indices])

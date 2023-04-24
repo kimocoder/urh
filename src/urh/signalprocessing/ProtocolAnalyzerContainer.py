@@ -40,9 +40,7 @@ class ProtocolAnalyzerContainer(ProtocolAnalyzer):
 
     @property
     def protocol_labels(self):
-        result = list(set(lbl for msg in self.messages for lbl in msg.message_type))
-        result.sort()
-        return result
+        return sorted({lbl for msg in self.messages for lbl in msg.message_type})
 
     @property
     def multiple_fuzz_labels_per_message(self):
@@ -142,8 +140,9 @@ class ProtocolAnalyzerContainer(ProtocolAnalyzer):
         return self.fuzz(FuzzMode.exhaustive, default_pause=default_pause)
 
     def create_fuzzing_label(self, start, end, msg_index) -> ProtocolLabel:
-        fuz_lbl = self.messages[msg_index].message_type.add_protocol_label(start=start, end=end)
-        return fuz_lbl
+        return self.messages[msg_index].message_type.add_protocol_label(
+            start=start, end=end
+        )
 
     def set_decoder_for_messages(self, decoder, messages=None):
         raise NotImplementedError("Encoding can't be set in Generator!")

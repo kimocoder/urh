@@ -65,9 +65,9 @@ class DeviceOptionsTableModel(QAbstractTableModel):
                 if device.is_enabled:
                     if device.supports_rx and device.supports_tx:
                         device_info = "supports RX and TX"
-                    elif device.supports_rx and not device.supports_tx:
+                    elif device.supports_rx:
                         device_info = "supports RX only"
-                    elif not device.supports_rx and device.supports_tx:
+                    elif device.supports_tx:
                         device_info = "supports TX only"
                     else:
                         device_info = ""
@@ -97,7 +97,7 @@ class DeviceOptionsTableModel(QAbstractTableModel):
             enabled = bool(value)
             if j == 0:
                 device.is_enabled = enabled
-            if j == 2:
+            elif j == 2:
                 if enabled and device.has_native_backend:
                     device.selected_backend = Backends.native
                 elif not enabled and device.has_gnuradio_backend:
@@ -219,7 +219,9 @@ class OptionsDialog(QDialog):
         self.ui.labelRebuildNativeStatus.setText("")
 
         self.show_available_colormaps()
-        self.restoreGeometry(settings.read("{}/geometry".format(self.__class__.__name__), type=bytes))
+        self.restoreGeometry(
+            settings.read(f"{self.__class__.__name__}/geometry", type=bytes)
+        )
 
     def create_connects(self):
         self.ui.doubleSpinBoxFuzzingPause.valueChanged.connect(self.on_spinbox_fuzzing_pause_value_changed)
@@ -313,7 +315,7 @@ class OptionsDialog(QDialog):
 
         self.values_changed.emit(changed_values)
 
-        settings.write("{}/geometry".format(self.__class__.__name__), self.saveGeometry())
+        settings.write(f"{self.__class__.__name__}/geometry", self.saveGeometry())
         super().closeEvent(event)
 
     def set_gnuradio_status(self):
@@ -324,19 +326,19 @@ class OptionsDialog(QDialog):
     def on_btn_add_label_type_clicked(self):
         suffix = 1
         field_type_names = {ft.caption for ft in self.field_type_table_model.field_types}
-        while "New Fieldtype #" + str(suffix) in field_type_names:
+        while f"New Fieldtype #{suffix}" in field_type_names:
             suffix += 1
 
-        caption = "New Fieldtype #" + str(suffix)
+        caption = f"New Fieldtype #{suffix}"
         self.field_type_table_model.field_types.append(FieldType(caption, FieldType.Function.CUSTOM))
         self.field_type_table_model.update()
 
     @pyqtSlot()
     def on_btn_remove_label_type_clicked(self):
         if self.field_type_table_model.field_types:
-            selected_indices = {i.row() for i in self.ui.tblLabeltypes.selectedIndexes()}
-
-            if selected_indices:
+            if selected_indices := {
+                i.row() for i in self.ui.tblLabeltypes.selectedIndexes()
+            }:
                 for i in reversed(sorted(selected_indices)):
                     self.field_type_table_model.field_types.pop(i)
             else:
@@ -396,10 +398,16 @@ class OptionsDialog(QDialog):
 
     @pyqtSlot()
     def on_btn_rebuild_native_clicked(self):
-        library_dirs = None if not self.ui.lineEditLibDirs.text() \
-            else list(map(str.strip, self.ui.lineEditLibDirs.text().split(",")))
-        include_dirs = None if not self.ui.lineEditIncludeDirs.text() \
-            else list(map(str.strip, self.ui.lineEditIncludeDirs.text().split(",")))
+        library_dirs = (
+            list(map(str.strip, self.ui.lineEditLibDirs.text().split(",")))
+            if self.ui.lineEditLibDirs.text()
+            else None
+        )
+        include_dirs = (
+            list(map(str.strip, self.ui.lineEditIncludeDirs.text().split(",")))
+            if self.ui.lineEditIncludeDirs.text()
+            else None
+        )
 
         extensions, _ = ExtensionHelper.get_device_extensions_and_extras(library_dirs=library_dirs, include_dirs=include_dirs)
 

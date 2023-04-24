@@ -84,7 +84,7 @@ class ProtocolAnalyzer(object):
         result = cls.__new__(cls)
         memo[id(self)] = result
         for k, v in self.__dict__.items():
-            if k != "qt_signals" and k != "signal":
+            if k not in ["qt_signals", "signal"]:
                 setattr(result, k, copy.deepcopy(v, memo))
         result.signal = self.signal
         result.qt_signals = ProtocolAnalyzerSignals()
@@ -92,8 +92,7 @@ class ProtocolAnalyzer(object):
 
     @property
     def name(self):
-        name = self.signal.name if self.signal is not None else self.__name
-        return name
+        return self.signal.name if self.signal is not None else self.__name
 
     @name.setter
     def name(self, val: str):
@@ -234,17 +233,14 @@ class ProtocolAnalyzer(object):
             self.__ensure_message_length_multiple(bit_data, signal.samples_per_symbol, pauses, bit_sample_pos,
                                                   signal.message_length_divisor)
 
-        i = 0
-        for bits, pause in zip(bit_data, pauses):
-            middle_bit_pos = bit_sample_pos[i][int(len(bits) / 2)]
+        for i, (bits, pause) in enumerate(zip(bit_data, pauses)):
+            middle_bit_pos = bit_sample_pos[i][len(bits) // 2]
             start, end = middle_bit_pos, middle_bit_pos + samples_per_symbol
             rssi = np.mean(signal.iq_array.subarray(start, end).magnitudes_normalized)
             message = Message(bits, pause, message_type=self.default_message_type,
                               samples_per_symbol=samples_per_symbol, rssi=rssi, decoder=self.decoder,
                               bit_sample_pos=bit_sample_pos[i], bits_per_symbol=signal.bits_per_symbol)
             self.messages.append(message)
-            i += 1
-
         self.qt_signals.protocol_updated.emit()
 
     @staticmethod
@@ -268,7 +264,7 @@ class ProtocolAnalyzer(object):
                 try:
                     bit_sample_pos[i][-1] = bit_sample_pos[i][-2] + samples_per_symbol
                 except IndexError as e:
-                    logger.warning("Error padding message " + str(e))
+                    logger.warning(f"Error padding message {str(e)}")
                     continue
 
                 bit_sample_pos[i].extend([bit_sample_pos[i][-1] + (k + 1) * samples_per_symbol for k in range(missing_bits - 1)])
@@ -288,7 +284,7 @@ class ProtocolAnalyzer(object):
 
         there_was_data = False
 
-        samples_per_bit = int(samples_per_symbol/bits_per_symbol)
+        samples_per_bit = samples_per_symbol // bits_per_symbol
 
         if len(ppseq) > 0 and ppseq[0, 0] == pause_type:
             start = 1  # Starts with Pause
@@ -390,7 +386,11 @@ class ProtocolAnalyzer(object):
 
         for i, msg in enumerate(self.messages):
             msg_sample_pos = msg.bit_sample_pos
-            if msg_sample_pos[-2] < selection_start:
+            if (
+                msg_sample_pos[-2] < selection_start
+                or start_message != -1
+                and msg_sample_pos[-1] - selection_start < selection_width
+            ):
                 continue
             elif start_message == -1:
                 start_message = i
@@ -403,8 +403,6 @@ class ProtocolAnalyzer(object):
                             break
                     elif sample_pos - selection_start > selection_width:
                         return start_message, start_index, i, j
-            elif msg_sample_pos[-1] - selection_start < selection_width:
-                continue
             else:
                 for j, sample_pos in enumerate(msg_sample_pos):
                     if sample_pos - selection_start > selection_width:
@@ -485,7 +483,7 @@ class ProtocolAnalyzer(object):
         elif view_type == 2:
             bit_pattern = "".join(map(str, urh_util.ascii2bit(pattern)))
         else:
-            raise ValueError("Unknown view type {}".format(view_type))
+            raise ValueError(f"Unknown view type {view_type}")
 
         indices = [msg.decoded_bits_str.find(bit_pattern) if use_decoded else msg.plain_bits_str.find(bit_pattern)
                    for msg in self.messages]
@@ -517,19 +515,16 @@ class ProtocolAnalyzer(object):
                     frequencies.append(freq)
                     if len(frequencies) == nbits:
                         return np.mean(frequencies)
-        if frequencies:
-            return np.mean(frequencies)
-        else:
-            return 0
+        return np.mean(frequencies) if frequencies else 0
 
     def __str__(self):
-        return "ProtoAnalyzer " + self.name
+        return f"ProtoAnalyzer {self.name}"
 
     def set_labels(self, val):
         self._protocol_labels = val
 
     def add_new_message_type(self, labels):
-        names = set(message_type.name for message_type in self.message_types)
+        names = {message_type.name for message_type in self.message_types}
         name = "Message type #"
         i = 0
         while True:
@@ -565,7 +560,7 @@ class ProtocolAnalyzer(object):
 
         # Save data
         data_tag = ET.SubElement(root, "messages")
-        for i, message in enumerate(messages):
+        for message in messages:
             message_tag = message.to_xml(decoders=decodings,
                                          include_message_type=include_message_type,
                                          write_bits=write_bits)
@@ -604,9 +599,12 @@ class ProtocolAnalyzer(object):
             self.messages[:] = []
 
         try:
-            message_types = []
-            for message_type_tag in root.find("message_types").findall("message_type"):
-                message_types.append(MessageType.from_xml(message_type_tag))
+            message_types = [
+                MessageType.from_xml(message_type_tag)
+                for message_type_tag in root.find("message_types").findall(
+                    "message_type"
+                )
+            ]
         except AttributeError:
             message_types = []
 
@@ -636,10 +634,10 @@ class ProtocolAnalyzer(object):
         try:
             tree = ET.parse(filename)
         except FileNotFoundError:
-            logger.error("Could not find file " + filename)
+            logger.error(f"Could not find file {filename}")
             return
         except ET.ParseError:
-            logger.error("Could not parse file " + filename)
+            logger.error(f"Could not parse file {filename}")
             return
 
         root = tree.getroot()
@@ -717,7 +715,7 @@ class ProtocolAnalyzer(object):
 
             for line in filter(None, map(str.strip, message_strings)):
                 bits, pause = parse_line(line)
-                bit_str = [lookup[bits[i].lower()] for i in range(0, len(bits))]
+                bit_str = [lookup[bits[i].lower()] for i in range(len(bits))]
                 protocol.messages.append(Message.from_plain_bits_str("".join(bit_str), pause=pause))
 
         return protocol

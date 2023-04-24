@@ -159,7 +159,7 @@ class GraphicsItem(QGraphicsObject):
         return self.bounding_rect
 
     def update_numbering(self):
-        self.number.setPlainText(self.model_item.index() + ".")
+        self.number.setPlainText(f"{self.model_item.index()}.")
 
         for child in self.get_scene_children():
             child.update_numbering()
@@ -171,7 +171,7 @@ class GraphicsItem(QGraphicsObject):
             if isinstance(item, GraphicsItem) and item != self and item.acceptDrops():
                 items.append(item)
 
-        item = None if len(items) == 0 else items[0]
+        item = items[0] if items else None
 
         if self.item_under_mouse and self.item_under_mouse != item:
             self.item_under_mouse.dragLeaveEvent(None)
@@ -180,7 +180,7 @@ class GraphicsItem(QGraphicsObject):
             if item:
                 self.item_under_mouse = item
                 self.item_under_mouse.dragEnterEvent(None)
-        elif self.item_under_mouse and self.item_under_mouse == item:
+        elif self.item_under_mouse:
             self.item_under_mouse.update_drop_indicator(self.mapToItem(self.item_under_mouse, event.pos()))
         elif item:
             self.item_under_mouse = item

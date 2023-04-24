@@ -43,5 +43,5 @@ class LabelItem(GraphicsItem):
             value_type = "Checksum"
         else:
             value_type = SimulatorProtocolLabel.VALUE_TYPES[self.model_item.value_type_index]
-        tooltip = "Value type:<br><b>{}</b>".format(value_type)
+        tooltip = f"Value type:<br><b>{value_type}</b>"
         self.setToolTip(tooltip)

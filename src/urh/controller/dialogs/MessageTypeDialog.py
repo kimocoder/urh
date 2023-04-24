@@ -22,10 +22,8 @@ class MessageTypeDialog(QDialog):
         self.setAttribute(Qt.WA_DeleteOnClose)
         self.setWindowFlags(Qt.Window)
 
-        operator_descriptions = list(OPERATION_DESCRIPTION.values())
-        operator_descriptions.sort()
-
-        self.setWindowTitle(self.tr("Rules for {}".format(message_type.name)))
+        operator_descriptions = sorted(OPERATION_DESCRIPTION.values())
+        self.setWindowTitle(self.tr(f"Rules for {message_type.name}"))
         self.message_type = message_type
         self.original_ruleset = copy.deepcopy(message_type.ruleset)
         self.original_assigned_status = message_type.assigned_by_ruleset
@@ -47,7 +45,9 @@ class MessageTypeDialog(QDialog):
         self.ui.cbRulesetMode.setCurrentIndex(self.message_type.ruleset.mode.value)
 
         self.create_connects()
-        self.restoreGeometry(settings.read("{}/geometry".format(self.__class__.__name__), type=bytes))
+        self.restoreGeometry(
+            settings.read(f"{self.__class__.__name__}/geometry", type=bytes)
+        )
 
     def create_connects(self):
         self.ui.btnAddRule.clicked.connect(self.on_btn_add_rule_clicked)
@@ -72,7 +72,7 @@ class MessageTypeDialog(QDialog):
     def closeEvent(self, event: QCloseEvent):
         self.ui.tblViewRuleset.setItemDelegateForColumn(2, None)
         self.ui.tblViewRuleset.setItemDelegateForColumn(3, None)
-        settings.write("{}/geometry".format(self.__class__.__name__), self.saveGeometry())
+        settings.write(f"{self.__class__.__name__}/geometry", self.saveGeometry())
         super().closeEvent(event)
 
     @pyqtSlot()

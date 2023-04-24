@@ -63,7 +63,9 @@ class ModulatorDialog(QDialog):
                                                                                 QLineEdit.TrailingPosition)
 
         self.create_connects()
-        self.restoreGeometry(settings.read("{}/geometry".format(self.__class__.__name__), type=bytes))
+        self.restoreGeometry(
+            settings.read(f"{self.__class__.__name__}/geometry", type=bytes)
+        )
 
         self.set_bits_per_symbol_enabled_status()
         self.set_modulation_profile_status()
@@ -108,7 +110,7 @@ class ModulatorDialog(QDialog):
 
     def closeEvent(self, event: QCloseEvent):
         self.ui.lineEditParameters.editingFinished.emit()
-        settings.write("{}/geometry".format(self.__class__.__name__), self.saveGeometry())
+        settings.write(f"{self.__class__.__name__}/geometry", self.saveGeometry())
 
         for gv in (self.ui.gVCarrier, self.ui.gVData, self.ui.gVModulated, self.ui.gVOriginalSignal):
             # Eliminate graphic views to prevent segfaults
@@ -121,8 +123,9 @@ class ModulatorDialog(QDialog):
         return self.modulators[self.ui.comboBoxCustomModulations.currentIndex()]
 
     def set_ui_for_current_modulator(self):
-        index = self.ui.comboBoxModulationType.findText("*(" + self.current_modulator.modulation_type + ")",
-                                                        Qt.MatchWildcard)
+        index = self.ui.comboBoxModulationType.findText(
+            f"*({self.current_modulator.modulation_type})", Qt.MatchWildcard
+        )
         self.ui.comboBoxModulationType.setCurrentIndex(index)
         self.ui.doubleSpinBoxCarrierFreq.setValue(self.current_modulator.carrier_freq_hz)
         self.ui.doubleSpinBoxCarrierPhase.setValue(self.current_modulator.carrier_phase_deg)
@@ -247,7 +250,7 @@ class ModulatorDialog(QDialog):
         name = "Modulation"
         number = 1
         while name in names:
-            name = "Modulation " + str(number)
+            name = f"Modulation {str(number)}"
             number += 1
         self.modulators.append(Modulator(name))
         self.ui.comboBoxCustomModulations.addItem(name)
@@ -346,7 +349,7 @@ class ModulatorDialog(QDialog):
         self.update_views()
 
     def keyPressEvent(self, event: QKeyEvent):
-        if event.key() == Qt.Key_Enter or event.key() == Qt.Key_Return:
+        if event.key() in [Qt.Key_Enter, Qt.Key_Return]:
             return
         else:
             super().keyPressEvent(event)
@@ -376,7 +379,7 @@ class ModulatorDialog(QDialog):
         else:
             raise ValueError("Unknown modulation type")
 
-        full_regex = r"^(" + regex + r"/){" + str(n) + "}" + regex + r"$"
+        full_regex = f"^({regex}" + r"/){" + str(n) + "}" + regex + r"$"
         self.ui.lineEditParameters.setValidator(QRegExpValidator(QRegExp(full_regex)))
         self.ui.lineEditParameters.setText(self.current_modulator.parameters_string)
 
@@ -414,7 +417,7 @@ class ModulatorDialog(QDialog):
     @pyqtSlot()
     def on_data_bits_changed(self):
         text = self.ui.linEdDataBits.text()
-        text = ''.join(c for c in text if c == "1" or c == "0")
+        text = ''.join(c for c in text if c in ["1", "0"])
         self.ui.linEdDataBits.blockSignals(True)
         self.ui.linEdDataBits.setText(text)
         self.ui.linEdDataBits.blockSignals(False)
@@ -422,17 +425,14 @@ class ModulatorDialog(QDialog):
         self.draw_carrier()
         self.draw_data_bits()
         self.draw_modulated()
-        if len(text) > 0:
-            if len(text) > 24:
-                display_text = text[0:24] + "..."
-            else:
-                display_text = text
-            self.ui.cbShowDataBitsOnly.setToolTip(text)
-            self.ui.cbShowDataBitsOnly.setText(self.tr("Show Only Data Sequence\n") + "(" + display_text + ")")
-        else:
+        if not text:
             self.ui.cbShowDataBitsOnly.setToolTip("")
             self.ui.cbShowDataBitsOnly.setText(self.tr("Show Only Data Sequence\n"))
 
+        else:
+            display_text = f"{text[:24]}..." if len(text) > 24 else text
+            self.ui.cbShowDataBitsOnly.setToolTip(text)
+            self.ui.cbShowDataBitsOnly.setText(self.tr("Show Only Data Sequence\n") + "(" + display_text + ")")
         self.search_data_sequence()
         self.restore_bits_action.setEnabled(text != self.original_bits)
         self.show_full_scene()
@@ -628,7 +628,7 @@ class ModulatorDialog(QDialog):
             try:
                 parameters.append(factor * float(param))
             except ValueError:
-                logger.warning("Could not convert {} to number".format(param))
+                logger.warning(f"Could not convert {param} to number")
                 return
 
         self.current_modulator.parameters[:] = array("f", parameters)

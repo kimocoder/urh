@@ -5,7 +5,7 @@ import tempfile
 if sys.version_info < (3, 4):
     print("You need at least Python 3.4 for this application!")
     if sys.version_info[0] < 3:
-        print("try running with python3 {}".format(" ".join(sys.argv)))
+        print(f'try running with python3 {" ".join(sys.argv)}')
     sys.exit(1)
 
 try:
@@ -20,12 +20,12 @@ from src.urh.dev.native import ExtensionHelper
 from src.urh.dev.native.ExtensionHelper import COMPILER_DIRECTIVES
 import src.urh.version as version
 
-if sys.platform == "win32":
-    OPEN_MP_FLAG = "/openmp"
-    NO_NUMPY_WARNINGS_FLAG = ""
-elif sys.platform == "darwin":
+if sys.platform == "darwin":
     OPEN_MP_FLAG = ""  # no OpenMP support in default Mac OSX compiler
     NO_NUMPY_WARNINGS_FLAG = "-Wno-#warnings"
+elif sys.platform == "win32":
+    OPEN_MP_FLAG = "/openmp"
+    NO_NUMPY_WARNINGS_FLAG = ""
 else:
     OPEN_MP_FLAG = "-fopenmp"
     NO_NUMPY_WARNINGS_FLAG = "-Wno-cpp"
@@ -61,7 +61,7 @@ def get_packages():
     for dirpath, dirnames, filenames in os.walk(os.path.join("./src/", URH_DIR)):
         package_path = os.path.relpath(dirpath, os.path.join("./src/", URH_DIR)).replace(separator, ".")
         if len(package_path) > 1:
-            packages.append(URH_DIR + "." + package_path)
+            packages.append(f"{URH_DIR}.{package_path}")
 
     return packages
 
@@ -69,7 +69,7 @@ def get_packages():
 def get_package_data():
     package_data = {"urh.cythonext": ["*.pyx", "*.pxd"]}
     for plugin in PLUGINS:
-        package_data["urh.plugins." + plugin] = ['*.ui', "*.txt"]
+        package_data[f"urh.plugins.{plugin}"] = ['*.ui', "*.txt"]
 
     package_data["urh.dev.native.lib"] = ["*.pyx", "*.pxd"]
 
@@ -81,10 +81,16 @@ def get_package_data():
 
 def get_extensions():
     filenames = [os.path.splitext(f)[0] for f in os.listdir("src/urh/cythonext") if f.endswith(".pyx")]
-    extensions = [Extension("urh.cythonext." + f, ["src/urh/cythonext/" + f + ".pyx"],
-                            extra_compile_args=[OPEN_MP_FLAG],
-                            extra_link_args=[OPEN_MP_FLAG],
-                            language="c++") for f in filenames]
+    extensions = [
+        Extension(
+            f"urh.cythonext.{f}",
+            [f"src/urh/cythonext/{f}.pyx"],
+            extra_compile_args=[OPEN_MP_FLAG],
+            extra_link_args=[OPEN_MP_FLAG],
+            language="c++",
+        )
+        for f in filenames
+    ]
 
     ExtensionHelper.USE_RELATIVE_PATHS = True
     device_extensions, device_extras = ExtensionHelper.get_device_extensions_and_extras()
@@ -131,7 +137,7 @@ setup(
     package_data=get_package_data(),
     url="https://github.com/jopohl/urh",
     license="GNU General Public License (GPL)",
-    download_url="https://github.com/jopohl/urh/tarball/v" + str(version.VERSION),
+    download_url=f"https://github.com/jopohl/urh/tarball/v{str(version.VERSION)}",
     install_requires=install_requires,
     setup_requires=['numpy'],
     packages=get_packages(),
@@ -142,5 +148,6 @@ setup(
         'console_scripts': [
             'urh = urh.main:main',
             'urh_cli = urh.cli.urh_cli:main',
-        ]}
+        ]
+    },
 )

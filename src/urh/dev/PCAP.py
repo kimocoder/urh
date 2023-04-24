@@ -32,8 +32,8 @@ class PCAP(object):
         if self.timestamp_nsec is None or self.timestamp_sec is None:
             self.timestamp_sec, self.timestamp_nsec = self.get_seconds_nseconds(time.time())
 
-        self.timestamp_sec += int(ts_sec)
-        self.timestamp_nsec += int(ts_nsec)
+        self.timestamp_sec += ts_sec
+        self.timestamp_nsec += ts_nsec
         if self.timestamp_nsec >= 1e9:
             self.timestamp_sec += int(self.timestamp_nsec / 1e9)
             self.timestamp_nsec = int(self.timestamp_nsec % 1e9)

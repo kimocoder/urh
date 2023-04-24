@@ -18,7 +18,9 @@ class BackendContainer(object):
     def __init__(self, name, avail_backends: set, supports_rx: bool, supports_tx: bool):
         self.name = name
         self.avail_backends = avail_backends
-        self.selected_backend = Backends[settings.read(name + "_selected_backend", "none")]
+        self.selected_backend = Backends[
+            settings.read(f"{name}_selected_backend", "none")
+        ]
         if self.selected_backend not in self.avail_backends:
             self.selected_backend = Backends.none
 
@@ -28,14 +30,14 @@ class BackendContainer(object):
             elif Backends.grc in self.avail_backends:
                 self.selected_backend = Backends.grc
 
-        self.is_enabled = settings.read(name + "_is_enabled", True, bool)
+        self.is_enabled = settings.read(f"{name}_is_enabled", True, bool)
         self.__supports_rx = supports_rx
         self.__supports_tx = supports_tx
-        if len(self.avail_backends) == 0:
+        if not self.avail_backends:
             self.is_enabled = False
 
     def __repr__(self):
-        return "avail backends: " + str(self.avail_backends) + "| selected backend:" + str(self.selected_backend)
+        return f"avail backends: {str(self.avail_backends)}| selected backend:{str(self.selected_backend)}"
 
     @property
     def supports_rx(self) -> bool:
@@ -62,15 +64,10 @@ class BackendContainer(object):
         self.write_settings()
 
     def write_settings(self):
-        settings.write(self.name + "_is_enabled", self.is_enabled)
+        settings.write(f"{self.name}_is_enabled", self.is_enabled)
 
-        if self.selected_backend == Backends.grc and len(self.avail_backends) == 1:
-            # if GNU Radio is the only backend available we do not save it to ini,
-            # in order to auto enable native backend if a native extension is built afterwards
-            # see: https://github.com/jopohl/urh/issues/270
-            pass
-        else:
-            settings.write(self.name + "_selected_backend", self.selected_backend.name)
+        if self.selected_backend != Backends.grc or len(self.avail_backends) != 1:
+            settings.write(f"{self.name}_selected_backend", self.selected_backend.name)
 
 
 class BackendHandler(object):
@@ -92,11 +89,11 @@ class BackendHandler(object):
 
         self.set_gnuradio_installed_status()
 
-        if not hasattr(sys, 'frozen'):
-            self.path = os.path.dirname(os.path.realpath(__file__))
-        else:
-            self.path = os.path.dirname(sys.executable)
-
+        self.path = (
+            os.path.dirname(sys.executable)
+            if hasattr(sys, 'frozen')
+            else os.path.dirname(os.path.realpath(__file__))
+        )
         self.device_backends = {}
         """:type: dict[str, BackendContainer] """
 
@@ -225,10 +222,11 @@ class BackendHandler(object):
         settings.write("gnuradio_is_installed", int(self.gnuradio_is_installed))
 
     def __device_has_gr_scripts(self, devname: str):
-        if not hasattr(sys, "frozen"):
-            script_path = os.path.join(self.path, "gr", "scripts")
-        else:
-            script_path = self.path
+        script_path = (
+            self.path
+            if hasattr(sys, "frozen")
+            else os.path.join(self.path, "gr", "scripts")
+        )
         devname = devname.lower().split(" ")[0]
         has_send_file = False
         has_recv_file = False
@@ -308,6 +306,6 @@ class BackendHandler(object):
         result = "SoundCard -- "
         try:
             import pyaudio
-            return result + "OK"
+            return f"{result}OK"
         except Exception as e:
             return result + str(e)

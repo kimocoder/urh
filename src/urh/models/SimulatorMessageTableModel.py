@@ -71,17 +71,15 @@ class SimulatorMessageTableModel(TableModel):
         i = index.row()
         j = index.column()
 
-        if role == Qt.DisplayRole and self.display_data:
-            if self.label_mask[i, j]:
-                return "."
+        if role == Qt.DisplayRole and self.display_data and self.label_mask[i, j]:
+            return "."
 
         return super().data(index, role)
 
     def flags(self, index: QModelIndex):
-        if index.isValid():
-            if self.is_writeable:
-                return Qt.ItemIsEnabled | Qt.ItemIsEditable | Qt.ItemIsSelectable
-            else:
-                return Qt.ItemIsEnabled | Qt.ItemIsSelectable
-        else:
+        if not index.isValid():
             return Qt.NoItemFlags
+        if self.is_writeable:
+            return Qt.ItemIsEnabled | Qt.ItemIsEditable | Qt.ItemIsSelectable
+        else:
+            return Qt.ItemIsEnabled | Qt.ItemIsSelectable

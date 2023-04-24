@@ -50,7 +50,7 @@ class FormatFinder(object):
             # In doubt it is better to under estimate the sync end
             if n > 0:
                 self.sync_ends[i] = n * max(int(math.floor((value - self.preamble_starts[i]) / n)), 1) + \
-                                    self.preamble_starts[i]
+                                        self.preamble_starts[i]
             else:
                 self.sync_ends[i] = self.preamble_starts[i]
 
@@ -61,7 +61,15 @@ class FormatFinder(object):
         self.hexvectors = self.get_hexvectors(self.bitvectors)
         self.current_iteration = 0
 
-        participants = list(sorted(set(msg.participant for msg in messages if msg.participant is not None)))
+        participants = list(
+            sorted(
+                {
+                    msg.participant
+                    for msg in messages
+                    if msg.participant is not None
+                }
+            )
+        )
         self.participant_indices = [participants.index(msg.participant) if msg.participant is not None else -1
                                     for msg in messages]
         self.known_participant_addresses = {
@@ -111,10 +119,11 @@ class FormatFinder(object):
 
         if not message_type.get_first_label_with_type(FieldType.Function.SEQUENCE_NUMBER):
             engines.append(SequenceNumberEngine([self.bitvectors[i] for i in indices], already_labeled=already_labeled))
-        if not message_type.get_first_label_with_type(FieldType.Function.CHECKSUM):
-            # If checksum was not found in first iteration, it will also not be found in next one
-            if self.current_iteration == 0:
-                engines.append(ChecksumEngine([self.bitvectors[i] for i in indices], already_labeled=already_labeled))
+        if (
+            not message_type.get_first_label_with_type(FieldType.Function.CHECKSUM)
+            and self.current_iteration == 0
+        ):
+            engines.append(ChecksumEngine([self.bitvectors[i] for i in indices], already_labeled=already_labeled))
 
         result = set()
         for engine in engines:
@@ -167,7 +176,7 @@ class FormatFinder(object):
                     new_message_type = copy.deepcopy(message_type)  # type: MessageType
 
                     if i > 0:
-                        new_message_type.name = "Message Type {}.{}".format(self.current_iteration+1, i)
+                        new_message_type.name = f"Message Type {self.current_iteration + 1}.{i}"
                         new_message_type.give_new_id()
 
                     for rng in container:
@@ -183,8 +192,9 @@ class FormatFinder(object):
             self.current_iteration += 1
 
         if len(self.message_types) > 0:
-            messages_without_message_type = set(range(len(self.bitvectors))) - set(
-                i for l in self.existing_message_types.values() for i in l)
+            messages_without_message_type = set(range(len(self.bitvectors))) - {
+                i for l in self.existing_message_types.values() for i in l
+            }
 
             # add to default message type
             self.existing_message_types[self.message_types[0]].extend(list(messages_without_message_type))
@@ -253,8 +263,7 @@ class FormatFinder(object):
 
     @staticmethod
     def get_hexvectors(bitvectors: list):
-        result = awre_util.get_hexvectors(bitvectors)
-        return result
+        return awre_util.get_hexvectors(bitvectors)
 
     @staticmethod
     def get_bitvectors_from_messages(messages: list, sync_ends: np.ndarray = None):
@@ -275,14 +284,20 @@ class FormatFinder(object):
         :rtype: list of CommonRangeContainer
         """
         if num_messages is None:
-            message_indices = sorted(set(i for rng in label_set for i in rng.message_indices))
+            message_indices = sorted({i for rng in label_set for i in rng.message_indices})
         else:
             message_indices = range(num_messages)
 
         result = []
         for i in message_indices:
-            labels = sorted(set(rng for rng in label_set if i in rng.message_indices
-                                and not isinstance(rng, EmptyCommonRange)))
+            labels = sorted(
+                {
+                    rng
+                    for rng in label_set
+                    if i in rng.message_indices
+                    and not isinstance(rng, EmptyCommonRange)
+                }
+            )
 
             container = next((container for container in result if container.has_same_ranges(labels)), None)
             if container is None:
@@ -338,7 +353,7 @@ class FormatFinder(object):
         # partition the container into overlapping partitions
         # results in something like [[A], [B,C], [D], [E,F,G]]] where B and C and E, F, G are overlapping
         for cur_rng in container:
-            if len(partitions) == 0:
+            if not partitions:
                 partitions.append([cur_rng])
                 continue
 

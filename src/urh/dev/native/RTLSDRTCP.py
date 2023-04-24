@@ -25,13 +25,13 @@ class RTLSDRTCP(Device):
         sdr.open(ctrl_connection, device_ip, port)
         if sdr.socket_is_open:
             sdr.device_number = device_number
-            sdr.set_parameter("centerFreq", int(center_freq), ctrl_connection)
-            sdr.set_parameter("sampleRate", int(sample_rate), ctrl_connection)
-            sdr.set_parameter("bandwidth", int(bandwidth), ctrl_connection)
-            sdr.set_parameter("freqCorrection", int(freq_correction), ctrl_connection)
-            sdr.set_parameter("directSampling", int(direct_sampling_mode), ctrl_connection)
+            sdr.set_parameter("centerFreq", center_freq, ctrl_connection)
+            sdr.set_parameter("sampleRate", sample_rate, ctrl_connection)
+            sdr.set_parameter("bandwidth", bandwidth, ctrl_connection)
+            sdr.set_parameter("freqCorrection", freq_correction, ctrl_connection)
+            sdr.set_parameter("directSampling", direct_sampling_mode, ctrl_connection)
             # Gain has to be set last, otherwise it does not get considered by RTL-SDR
-            sdr.set_parameter("tunerGain", int(gain), ctrl_connection)
+            sdr.set_parameter("tunerGain", gain, ctrl_connection)
             exit_requested = False
 
             while not exit_requested:
@@ -53,7 +53,7 @@ class RTLSDRTCP(Device):
         ctrl_connection.close()
 
     def process_command(self, command, ctrl_connection, is_tx=False):
-        logger.debug("RTLSDRTCP: {}".format(command))
+        logger.debug(f"RTLSDRTCP: {command}")
         if command == self.Command.STOP.name:
             return self.Command.STOP
 
@@ -103,64 +103,65 @@ class RTLSDRTCP(Device):
                self.bandwidth, self.gain, self.freq_correction, self.direct_sampling_mode, self.device_ip, self.port
 
     def open(self, ctrl_connection, hostname="127.0.0.1", port=1234):
-        if not self.socket_is_open:
-            try:
-                # Create socket and connect
-                self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP)
-                # self.sock.settimeout(1.0)  # Timeout 1s
-                self.sock.connect((hostname, port))
-            except Exception as e:
-                self.socket_is_open = False
-                logger.info("Could not connect to rtl_tcp at {0}:{1} ({2})".format(hostname, port, e))
-                ctrl_connection.send("Could not connect to rtl_tcp at {0} [{1}] ({2}):1".format(hostname, port, e))
+        if self.socket_is_open:
+            return
+        try:
+            # Create socket and connect
+            self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP)
+            # self.sock.settimeout(1.0)  # Timeout 1s
+            self.sock.connect((hostname, port))
+        except Exception as e:
+            self.socket_is_open = False
+            logger.info("Could not connect to rtl_tcp at {0}:{1} ({2})".format(hostname, port, e))
+            ctrl_connection.send("Could not connect to rtl_tcp at {0} [{1}] ({2}):1".format(hostname, port, e))
+            return False
+
+        try:
+            # Receive rtl_tcp initial data
+            init_data = self.sock.recv(self.MAXDATASIZE)
+
+            if len(init_data) != 12:
+                return False
+            if init_data[:4] != b'RTL0':
                 return False
 
-            try:
-                # Receive rtl_tcp initial data
-                init_data = self.sock.recv(self.MAXDATASIZE)
+            # Extract tuner name
+            tuner_number = int.from_bytes(init_data[4:8], self.ENDIAN)
+            if tuner_number == 1:
+                self.tuner = "E4000"
+            elif tuner_number == 2:
+                self.tuner = "FC0012"
+            elif tuner_number == 3:
+                self.tuner = "FC0013"
+            elif tuner_number == 4:
+                self.tuner = "FC2580"
+            elif tuner_number == 5:
+                self.tuner = "R820T"
+            elif tuner_number == 6:
+                self.tuner = "R828D"
+            else:
+                self.tuner = "Unknown"
 
-                if len(init_data) != 12:
-                    return False
-                if init_data[0:4] != b'RTL0':
-                    return False
+            # Extract IF and RF gain
+            self.if_gain = int.from_bytes(init_data[8:10], self.ENDIAN)
+            self.rf_gain = int.from_bytes(init_data[10:12], self.ENDIAN)
 
-                # Extract tuner name
-                tuner_number = int.from_bytes(init_data[4:8], self.ENDIAN)
-                if tuner_number == 1:
-                    self.tuner = "E4000"
-                elif tuner_number == 2:
-                    self.tuner = "FC0012"
-                elif tuner_number == 3:
-                    self.tuner = "FC0013"
-                elif tuner_number == 4:
-                    self.tuner = "FC2580"
-                elif tuner_number == 5:
-                    self.tuner = "R820T"
-                elif tuner_number == 6:
-                    self.tuner = "R828D"
-                else:
-                    self.tuner = "Unknown"
+            logger.info(
+                "Connected to rtl_tcp at {0}:{1} (Tuner: {2}, RF-Gain: {3}, IF-Gain: {4})".format(hostname, port,
+                                                                                                  self.tuner,
+                                                                                                  self.rf_gain,
+                                                                                                  self.if_gain))
+            ctrl_connection.send(
+                "Connected to rtl_tcp at {0}[{1}] (Tuner={2}, RF-Gain={3}, IF-Gain={4}):0".format(hostname, port,
+                                                                                                  self.tuner,
+                                                                                                  self.rf_gain,
+                                                                                                  self.if_gain))
+        except Exception as e:
+            self.socket_is_open = False
+            logger.info("This is not a valid rtl_tcp server at {0}:{1} ({2})".format(hostname, port, e))
+            return False
 
-                # Extract IF and RF gain
-                self.if_gain = int.from_bytes(init_data[8:10], self.ENDIAN)
-                self.rf_gain = int.from_bytes(init_data[10:12], self.ENDIAN)
-
-                logger.info(
-                    "Connected to rtl_tcp at {0}:{1} (Tuner: {2}, RF-Gain: {3}, IF-Gain: {4})".format(hostname, port,
-                                                                                                      self.tuner,
-                                                                                                      self.rf_gain,
-                                                                                                      self.if_gain))
-                ctrl_connection.send(
-                    "Connected to rtl_tcp at {0}[{1}] (Tuner={2}, RF-Gain={3}, IF-Gain={4}):0".format(hostname, port,
-                                                                                                      self.tuner,
-                                                                                                      self.rf_gain,
-                                                                                                      self.if_gain))
-            except Exception as e:
-                self.socket_is_open = False
-                logger.info("This is not a valid rtl_tcp server at {0}:{1} ({2})".format(hostname, port, e))
-                return False
-
-            self.socket_is_open = True
+        self.socket_is_open = True
 
     def close(self):
         if self.socket_is_open:
@@ -182,10 +183,7 @@ class RTLSDRTCP(Device):
 
     def read_sync(self):
         s_read, _, _ = select.select([self.sock], [], [], .1)
-        if self.sock in s_read:
-            return self.sock.recv(self.MAXDATASIZE)
-        else:
-            return b''
+        return self.sock.recv(self.MAXDATASIZE) if self.sock in s_read else b''
 
     @staticmethod
     def bytes_to_iq(buffer):

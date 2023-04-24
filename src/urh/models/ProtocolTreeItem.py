@@ -25,27 +25,25 @@ class ProtocolTreeItem(object):
 
     @property
     def protocol(self):
-        if isinstance(self.__itemData, ProtocolAnalyzer):
-            if self.copy_data:
-                if self.__data_copy is None:
-                    self.__data_copy = copy.deepcopy(self.__itemData)  # type: ProtocolAnalyzer
-
-                    # keep message types
-                    self.__data_copy.message_types = self.__itemData.message_types
-                    nrz = Encoding([""])
-                    for i, message in enumerate(self.__data_copy.messages):  # type: Message
-                        decoded_bits = message.decoded_bits
-                        message.decoder = nrz
-                        message.plain_bits = decoded_bits
-                        message.message_type = self.__itemData.messages[i].message_type
-
-                    self.__data_copy.qt_signals.show_state_changed.connect(self.__itemData.qt_signals.show_state_changed.emit)
-
-                return self.__data_copy
-            else:
-                return self.__itemData
-        else:
+        if not isinstance(self.__itemData, ProtocolAnalyzer):
             return None
+        if not self.copy_data:
+            return self.__itemData
+        if self.__data_copy is None:
+            self.__data_copy = copy.deepcopy(self.__itemData)  # type: ProtocolAnalyzer
+
+            # keep message types
+            self.__data_copy.message_types = self.__itemData.message_types
+            nrz = Encoding([""])
+            for i, message in enumerate(self.__data_copy.messages):  # type: Message
+                decoded_bits = message.decoded_bits
+                message.decoder = nrz
+                message.plain_bits = decoded_bits
+                message.message_type = self.__itemData.messages[i].message_type
+
+            self.__data_copy.qt_signals.show_state_changed.connect(self.__itemData.qt_signals.show_state_changed.emit)
+
+        return self.__data_copy
 
     @property
     def is_group(self):
@@ -53,17 +51,11 @@ class ProtocolTreeItem(object):
 
     @property
     def group(self):
-        if type(self.__itemData) == ProtocolGroup:
-            return self.__itemData
-        else:
-            return None
+        return self.__itemData if type(self.__itemData) == ProtocolGroup else None
 
     @property
     def show(self):
-        if self.is_group:
-            return self.group_check_state
-        else:
-            return self.protocol.show
+        return self.group_check_state if self.is_group else self.protocol.show
 
     @show.setter
     def show(self, value: bool):
@@ -108,10 +100,7 @@ class ProtocolTreeItem(object):
         :type number: int
         :rtype: ProtocolTreeItem
         """
-        if number < self.childCount():
-            return self.__childItems[number]
-        else:
-            return False
+        return self.__childItems[number] if number < self.childCount() else False
 
     def childCount(self) -> int:
         return len(self.__childItems)
@@ -188,10 +177,7 @@ class ProtocolTreeItem(object):
             self.__childItems.insert(index, self.__childItems.pop(self.__childItems.index(child)))
 
     def containsChilds(self, childs):
-        for child in childs:
-            if child not in self.__childItems:
-                return False
-        return True
+        return all(child in self.__childItems for child in childs)
 
     def sortChilds(self):
         self.__childItems.sort()
